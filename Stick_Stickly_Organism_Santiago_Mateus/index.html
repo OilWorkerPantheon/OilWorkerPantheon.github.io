@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stick Stickly | By Santiago Mateus</title>
+<style>
+:root{
+  --bg:#07060b;
+  --ink:#f6f1f2;
+  --muted:#9d96a3;
+  --cyan:#37e8ff;
+  --pink:#ff3bbf;
+  --lime:#d8ff3e;
+  --violet:#8e4dff;
+  --blood:#8e1f35;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);
+  color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;
+  cursor:default
+}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+.vignette{position:fixed;inset:0;pointer-events:none;background:
+  radial-gradient(circle at 50% 44%,transparent 33%,rgba(0,0,0,.28) 67%,rgba(0,0,0,.82) 100%),
+  linear-gradient(90deg,rgba(0,0,0,.28),transparent 32%,transparent 68%,rgba(0,0,0,.28))}
+.grain{position:fixed;inset:-50%;pointer-events:none;opacity:.055;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.85'/%3E%3C/svg%3E");
+  transform:rotate(7deg)}
+.top{
+  position:fixed;left:30px;top:24px;z-index:8;pointer-events:none;
+  text-shadow:0 0 26px rgba(142,77,255,.22)
+}
+.title{font-weight:950;letter-spacing:-.055em;font-size:clamp(34px,4.5vw,66px);line-height:.88}
+.by{font-size:clamp(11px,1.05vw,15px);letter-spacing:.27em;text-transform:uppercase;color:#c8c0ca;margin-top:9px}
+.tag{
+  display:inline-block;margin-top:13px;padding:5px 9px;border:1px solid rgba(255,255,255,.13);
+  background:rgba(5,4,8,.35);font-size:9px;
+  letter-spacing:.18em;text-transform:uppercase;color:#9f98a7
+}
+.panel{
+  position:fixed;right:22px;top:22px;z-index:12;width:min(355px,calc(100vw - 44px));
+  padding:15px 15px 14px;border:1px solid rgba(255,255,255,.14);border-radius:16px;
+  background:linear-gradient(180deg,rgba(12,11,18,.88),rgba(8,7,12,.74));
+  box-shadow:0 16px 70px rgba(0,0,0,.35)
+}
+.panel.hidden{display:none}
+.row{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.label{font-size:9px;text-transform:uppercase;letter-spacing:.2em;color:#aaa2b0}
+.value{font-size:12px;font-weight:800;letter-spacing:.08em}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:11px}
+button{
+  appearance:none;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.035);
+  color:var(--ink);padding:10px 9px;border-radius:10px;cursor:pointer;text-align:left;
+  font:inherit;transition:.14s transform,.14s background,.14s border,.14s box-shadow
+}
+button:hover{transform:translateY(-1px);background:rgba(255,255,255,.075)}
+button.active{
+  border-color:rgba(216,255,62,.72);
+  box-shadow:0 0 25px rgba(216,255,62,.11),inset 0 0 14px rgba(216,255,62,.035)
+}
+#hideBtn{font-size:9px;padding:7px 8px;letter-spacing:.1em;text-transform:uppercase}
+.k{
+  font-size:9px;color:#7f7887;float:right;border:1px solid rgba(255,255,255,.1);
+  padding:2px 5px;border-radius:5px
+}
+.meter{height:5px;border-radius:99px;background:rgba(255,255,255,.07);margin-top:6px;overflow:hidden}
+.fill{
+  height:100%;width:0%;border-radius:99px;
+  background:linear-gradient(90deg,var(--cyan),var(--pink),var(--lime));
+  box-shadow:0 0 13px rgba(55,232,255,.48)
+}
+.hint{margin-top:11px;padding-top:11px;border-top:1px solid rgba(255,255,255,.08);font-size:10px;line-height:1.45;color:#a8a1ad}
+.score{margin-top:11px;max-height:235px;overflow:auto;padding-right:4px}
+.score::-webkit-scrollbar{width:5px}.score::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:9px}
+.cue{display:grid;grid-template-columns:48px 1fr;gap:9px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.time{font:700 9px ui-monospace,monospace;color:var(--lime)}
+.cue b{font-size:10px}.cue span{display:block;font-size:9px;color:#8e8795;margin-top:2px}
+.legend{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.chip{font-size:8px;letter-spacing:.08em;padding:4px 6px;border:1px solid rgba(255,255,255,.09);border-radius:999px;color:#9f98a7}
+.chip i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px}
+.startButton{width:100%;margin:13px 0 2px;padding:15px 12px;border:1px solid rgba(55,232,255,.55);
+  background:linear-gradient(110deg,rgba(55,232,255,.16),rgba(255,59,191,.12));color:#fff;
+  font-size:12px;font-weight:900;letter-spacing:.16em;text-align:center;text-shadow:0 0 16px rgba(55,232,255,.4);
+  box-shadow:0 0 28px rgba(55,232,255,.1),inset 0 0 20px rgba(255,59,191,.04)}
+.startButton:hover{border-color:var(--cyan);background:linear-gradient(110deg,rgba(55,232,255,.25),rgba(255,59,191,.2))}
+.startButton:disabled{opacity:.5;cursor:wait;transform:none}
+.beatFlag{display:inline-block;margin-left:8px;color:var(--pink);font-size:9px;letter-spacing:.16em;opacity:0;transition:opacity .04s;text-shadow:0 0 12px var(--pink)}
+.beatFlag.active{opacity:1}
+.startButton[hidden]{display:none}
+.loading{position:fixed;left:50%;top:50%;z-index:20;transform:translate(-50%,-50%);padding:9px 13px;
+  color:var(--cyan);background:rgba(7,6,11,.85);border:1px solid rgba(55,232,255,.25);font-size:10px;
+  letter-spacing:.16em;text-transform:uppercase;pointer-events:none}
+.loading.hidden{display:none}
+.bottom{
+  position:fixed;left:28px;bottom:22px;z-index:8;color:#817987;font-size:9px;
+  letter-spacing:.13em;text-transform:uppercase;pointer-events:none
+}
+.bottom{left:16px;bottom:12px}
+  .title{font-size:34px}.controls{grid-template-columns:1fr 1fr}.score{max-height:175px}
+
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="vignette"></div>
+
+<div class="top">
+  <div class="title">Stick Stickly</div>
+  <div class="by">By Santiago Mateus</div>
+  <div class="tag">live autonomous organism / visual instrument</div>
+</div>
+
+<div class="panel" id="panel">
+  <div class="row">
+    <div><div class="label">Performance mode</div><div class="value" id="mode">ORGANISM / REST</div></div>
+    <button id="hideBtn">ocultar panel <span class="k">H</span></button>
+  </div>
+
+  <div class="row" style="margin-top:13px">
+    <div class="label">activity <span class="beatFlag" id="beatFlag">BEAT</span></div><div class="value" id="activityText">0%</div>
+  </div>
+  <div class="meter"><div class="fill" id="activityFill"></div></div>
+
+  <button class="startButton" id="startBtn" type="button" disabled>INICIAR ORGANISMO</button>
+
+  <div class="controls">
+    <button id="pulseBtn">🫀 PULSE <span class="k">A</span></button>
+    <button id="flowBtn">🩸 FLOW <span class="k">S</span></button>
+    <button id="impulseBtn">🧠 IMPULSE <span class="k">D</span></button>
+    <button id="growthBtn">🦠 GROWTH <span class="k">F</span></button>
+  </div>
+
+  <div class="hint">
+    <b>Mouse:</b> campo de influencia. Mantén presionado para tocar el tejido.
+    <br><b>Space:</b> fullscreen. <b>H:</b> ocultar UI.
+  </div>
+
+  <div class="legend">
+    <span class="chip"><i style="background:var(--blood)"></i>circulación</span>
+    <span class="chip"><i style="background:var(--cyan)"></i>nervios</span>
+    <span class="chip"><i style="background:var(--pink)"></i>tejido</span>
+    <span class="chip"><i style="background:var(--lime)"></i>physarum</span>
+  </div>
+
+  <div class="score">
+    <div class="label" style="margin:14px 0 3px">score de performance · guía humana</div>
+    <div class="cue"><div class="time">0:00</div><div><b>INTRO</b><span>reposo / circulación baja / observar</span></div></div>
+    <div class="cue"><div class="time">0:16</div><div><b>ACUMULACIÓN</b><span>S: abrir el flujo poco a poco</span></div></div>
+    <div class="cue"><div class="time">0:30</div><div><b>PRE-CHORUS</b><span>A: tensar / preparar el pulso</span></div></div>
+    <div class="cue"><div class="time">0:33</div><div><b>CHORUS</b><span>A + S: el organismo se llena</span></div></div>
+    <div class="cue"><div class="time">0:56</div><div><b>VERSE</b><span>soltar A / dejar respirar</span></div></div>
+    <div class="cue"><div class="time">1:06</div><div><b>BRIDGE</b><span>D: descarga nerviosa puntual</span></div></div>
+    <div class="cue"><div class="time">1:11</div><div><b>BREAKDOWN</b><span>F + S: tejido fuera de equilibrio</span></div></div>
+    <div class="cue"><div class="time">2:01</div><div><b>CHORUS 2</b><span>A + mouse: máxima intervención</span></div></div>
+    <div class="cue"><div class="time">2:23</div><div><b>CODA / OUTRO</b><span>soltar controles / cicatriz residual</span></div></div>
+    <div class="hint">Los tiempos son una guía inicial de ensayo. El audio modula sutilmente el tejido; la intervención sigue siendo manual.</div>
+  </div>
+</div>
+
+<div class="bottom">stick stickly / autonomous systems / live audio analysis</div>
+<div class="loading" id="loading">loading organism</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d", {alpha:false});
+  const panel = document.getElementById("panel");
+  const loading = document.getElementById("loading");
+  const modeEl = document.getElementById("mode");
+  const beatFlag = document.getElementById("beatFlag");
+  const activityFill = document.getElementById("activityFill");
+  const activityText = document.getElementById("activityText");
+  const DPR = Math.min(devicePixelRatio || 1, 2);
+
+  const SRC_W = 585, SRC_H = 1112;
+  let W = innerWidth, H = innerHeight;
+  let t = 0, last = performance.now();
+  let mouse = {x:W/2, y:H/2, inside:true, down:false};
+
+  let pulse=.05, flow=.25, impulse=.02, growth=.28;
+  let targetPulse=pulse, targetFlow=flow, targetImpulse=impulse, targetGrowth=growth;
+  let energy=.04, nerveBurst=0;
+  let beatPulse=0, beatArmed=true, nextBeatAt=0;
+
+  let maskCanvas, maskCtx, maskData;
+  let bodyRect={x:0,y:0,w:0,h:0,scale:1};
+  let maskAlpha=null;
+  let bodyTexture, bodyMaskImage, bodyOutline, neonTexture;
+  let staticBodyCanvas, staticBodyCtx;
+  let blood=[], nerves=[], sparks=[];
+  let phys=[];
+
+  let gridW=120, gridH=80, slimeGrid, slimeNext;
+  let audioContext=null, analyser=null, audioElement=null, audioData=null;
+  let bassEnergy=0, trebleEnergy=0, movementEnergy=.08;
+  const bassHistory=[];
+  const BASS_HISTORY_SIZE=48;
+  const auraColors = ['#FF00FF', '#CCFF00', '#00FFFF', '#8A2BE2'];
+  let auraColorIndex = 0;
+
+  const COLORS = {
+    bg:"#07060b", bone:"#ebe4da", tissue:"#c98c86", blood:"#8e1f35",
+    cyan:"#37e8ff", pink:"#ff3bbf", lime:"#d8ff3e", violet:"#8e4dff"
+  };
+  const CELL_COLORS=[COLORS.pink,COLORS.lime,COLORS.cyan,COLORS.violet,COLORS.blood];
+
+  const rand=(a=1,b=0)=>Math.random()*(a-b)+b;
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const lerp=(a,b,x)=>a+(b-a)*x;
+  const smooth=(a,b,x)=>lerp(a,b,x*x*(3-2*x));
+
+  function resize(){
+    W=innerWidth; H=innerHeight;
+    canvas.width=W*DPR; canvas.height=H*DPR;
+    canvas.style.width=W+"px"; canvas.style.height=H+"px";
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.fillStyle=COLORS.bg;
+    ctx.fillRect(0,0,W,H);
+    bodyRect=rect();
+    initGrid();
+  }
+
+  function rect(){
+    // The uploaded croquis defines the silhouette proportions.
+    const scale=Math.min((W*.72)/SRC_W,(H*.92)/SRC_H);
+    const w=SRC_W*scale, h=SRC_H*scale;
+    return {x:(W-w)/2,y:(H-h)/2+12,w,h,scale};
+  }
+
+  function normToScreen(nx,ny){
+    const r=bodyRect;
+    return {x:r.x+nx*r.w,y:r.y+ny*r.h};
+  }
+
+  function insideBody(x,y){
+    if(!maskAlpha) return true;
+    const r=bodyRect;
+    if(x<r.x || x>=r.x+r.w || y<r.y || y>=r.y+r.h) return false;
+    const sx=((x-r.x)*SRC_W/r.w)|0;
+    const sy=((y-r.y)*SRC_H/r.h)|0;
+    return maskAlpha[sy*SRC_W+sx] > 18;
+  }
+
+  function bodyPoint(){
+    const r=bodyRect;
+    for(let i=0;i<220;i++){
+      const x=r.x+Math.random()*r.w;
+      const y=r.y+Math.random()*r.h;
+      if(insideBody(x,y)) return {x,y};
+    }
+    return normToScreen(.5,.48);
+  }
+
+  function loadImage(src){
+    return new Promise((resolve,reject)=>{
+      const img=new Image();
+      img.onload=()=>resolve(img);
+      img.onerror=reject;
+      img.src=src;
+    });
+  }
+
+  function buildNeonTexture(){
+    const c=document.createElement("canvas");c.width=SRC_W;c.height=SRC_H;
+    const x=c.getContext("2d");
+    const g=x.createLinearGradient(0,0,SRC_W,SRC_H);
+    g.addColorStop(0,"rgba(55,232,255,.24)");
+    g.addColorStop(.38,"rgba(142,77,255,.08)");
+    g.addColorStop(.55,"rgba(255,59,191,.18)");
+    g.addColorStop(.78,"rgba(216,255,62,.10)");
+    g.addColorStop(1,"rgba(55,232,255,.18)");
+    x.fillStyle=g;x.fillRect(0,0,SRC_W,SRC_H);
+    x.globalCompositeOperation="destination-in";
+    x.drawImage(bodyMaskImage,0,0,SRC_W,SRC_H);
+    x.globalCompositeOperation="source-over";
+    return c;
+  }
+
+  function makeAgent(){
+    const p=bodyPoint();
+    return {x:p.x,y:p.y,vx:rand(1.2,-1.2),vy:rand(1.2,-1.2),r:rand(2.3,.8),seed:Math.random()*1000,life:1};
+  }
+
+  function makeNerve(){
+    const targets=[
+      normToScreen(.50,.09),normToScreen(.50,.22),normToScreen(.50,.31),
+      normToScreen(.27,.50),normToScreen(.73,.50),
+      normToScreen(.36,.86),normToScreen(.64,.86)
+    ];
+    const p=bodyPoint(), target=targets[(Math.random()*targets.length)|0];
+    return {x:p.x,y:p.y,vx:0,vy:0,target,life:rand(1.8,.5),sz:rand(2.8,1.0)};
+  }
+
+  function initAgents(){
+    blood=Array.from({length:420},makeAgent);
+    nerves=Array.from({length:120},makeNerve);
+    phys=Array.from({length:250},()=>{
+      const p=bodyPoint(); return {x:p.x,y:p.y,a:rand(Math.PI*2)};
+    });
+    sparks=[];
+    slimeGrid=new Float32Array(gridW*gridH);
+    slimeNext=new Float32Array(gridW*gridH);
+  }
+
+  function initMaskData(){
+    maskCanvas=document.createElement("canvas");
+    maskCanvas.width=SRC_W;maskCanvas.height=SRC_H;
+    maskCtx=maskCanvas.getContext("2d",{willReadFrequently:true});
+    maskCtx.drawImage(bodyMaskImage,0,0,SRC_W,SRC_H);
+    maskData=maskCtx.getImageData(0,0,SRC_W,SRC_H);
+    maskAlpha=new Uint8Array(SRC_W*SRC_H);
+    for(let i=0,p=0;i<maskAlpha.length;i++,p+=4) maskAlpha[i]=maskData.data[p+3];
+  }
+
+  function initGrid(){
+    gridW=Math.max(64,Math.floor(W/15));
+    gridH=Math.max(42,Math.floor(H/15));
+    if(!slimeGrid) slimeGrid=new Float32Array(gridW*gridH);
+    else if(slimeGrid.length!==gridW*gridH){
+      slimeGrid=new Float32Array(gridW*gridH);
+      slimeNext=new Float32Array(gridW*gridH);
+    }
+  }
+
+  function gidx(x,y){return y*gridW+x}
+
+  function trailAt(px,py){
+    const r=bodyRect;
+    const gx=clamp(Math.floor((px-r.x)/r.w*gridW),0,gridW-1);
+    const gy=clamp(Math.floor((py-r.y)/r.h*gridH),0,gridH-1);
+    return slimeGrid[gidx(gx,gy)]||0;
+  }
+
+  function deposit(px,py,a){
+    const r=bodyRect;
+    if(px<r.x||py<r.y||px>r.x+r.w||py>r.y+r.h)return;
+    const gx=clamp(Math.floor((px-r.x)/r.w*gridW),0,gridW-1);
+    const gy=clamp(Math.floor((py-r.y)/r.h*gridH),0,gridH-1);
+    if(insideBody(px,py)) slimeGrid[gidx(gx,gy)]+=a;
+  }
+
+  function flowVector(x,y){
+    const r=bodyRect;
+    const nx=(x-r.x)/r.w-.5, ny=(y-r.y)/r.h-.5;
+    const noiseStrength=.55+flow*1.7+movementEnergy*2.1+beatPulse*5.2;
+    const curl=Math.sin(ny*8+t*(.46+flow*.24))+(.65+flow*.2)*Math.cos(nx*6.4-t*.33)+Math.sin(nx*11-ny*7+t*15)*beatPulse;
+    const curl2=Math.cos(nx*7.2+t*.19)-Math.sin(ny*5.1+t*(.40+flow*.2));
+
+    let fx=(Math.cos(curl*1.7+t*.13)-.55*ny*curl2)*noiseStrength;
+    let fy=(Math.sin(curl2*1.55-t*.11)+.55*nx*curl)*noiseStrength;
+    const noiseAngle=Math.sin(nx*8+ny*5+t*1.1)*(flow*.13+movementEnergy*.12+beatPulse*2.4);
+    const rotatedX=fx*Math.cos(noiseAngle)-fy*Math.sin(noiseAngle);
+    fy=fx*Math.sin(noiseAngle)+fy*Math.cos(noiseAngle);
+    fx=rotatedX;
+
+    // Global circulation is biased toward the heart, not hard-coded paths.
+    const heart=normToScreen(.50,.315);
+    const dx=heart.x-x, dy=heart.y-y, d=Math.hypot(dx,dy)||1;
+    fx += (dx/d)*(0.55+flow*1.8);
+    fy += (dy/d)*(0.55+flow*1.8);
+
+    // Performer becomes a moving local field disturbance.
+    if(mouse.inside){
+      const mdx=mouse.x-x, mdy=mouse.y-y, md=Math.hypot(mdx,mdy)||1;
+      if(md<180){
+        const m=1-md/180;
+        const sign=mouse.down?-1:1;
+        fx+=(mdx/md)*m*(2.5+flow*2.1)*sign;
+        fy+=(mdy/md)*m*(2.5+flow*2.1)*sign;
+      }
+    }
+    const L=Math.hypot(fx,fy)||1;
+    return {x:fx/L,y:fy/L};
+  }
+
+  function updateBlood(dt){
+    for(let i=0;i<blood.length;i++){
+      const p=blood[i];
+      let sx=0,sy=0, ax=0,ay=0,cx=0,cy=0,count=0;
+      for(let k=1;k<=4;k++){
+        const q=blood[(i*17+k*29+i)%blood.length];
+        const dx=q.x-p.x,dy=q.y-p.y,d2=dx*dx+dy*dy;
+        if(d2<55*55 && d2>0.1){
+          const d=Math.sqrt(d2);count++;
+          if(d<19){sx-=dx/d*(19-d);sy-=dy/d*(19-d)}
+          ax+=q.vx;ay+=q.vy;cx+=q.x;cy+=q.y
+        }
+      }
+      if(count){ax/=count;ay/=count;cx/=count;cy/=count;ax-=p.vx;ay-=p.vy;cx-=p.x;cy-=p.y}
+
+      const f=flowVector(p.x,p.y);
+      let fx=sx*(.17+beatPulse*7.5)+ax*.016+cx*.0016+f.x*(.75+flow*3.1);
+      let fy=sy*(.17+beatPulse*7.5)+ay*.016+cy*.0016+f.y*(.75+flow*3.1);
+
+      // Cohesion strengthens with GROWTH.
+      fx+=cx*growth*.002;fy+=cy*growth*.002;
+
+      if(mouse.inside){
+        const mx=p.x-mouse.x,my=p.y-mouse.y,md=Math.hypot(mx,my)||1;
+        if(md<145){
+          const force=(1-md/145)*(mouse.down?3.8:1.4);
+          const direction=mouse.down?1:-1;
+          fx+=mx/md*force*direction;
+          fy+=my/md*force*direction;
+        }
+      }
+      const jitter=.08+pulse*.72+movementEnergy*.8+bassEnergy*.16;
+      fx+=rand(jitter,-jitter);
+      fy+=rand(jitter,-jitter);
+
+      p.vx=lerp(p.vx,p.vx+fx,.68);
+      p.vy=lerp(p.vy,p.vy+fy,.68);
+
+      const speed=Math.hypot(p.vx,p.vy)||1;
+      const max=.62+energy*2.7+pulse*2.3+beatPulse*5.0;
+      if(speed>max){p.vx=p.vx/speed*max;p.vy=p.vy/speed*max}
+
+      p.x+=p.vx*dt*72;p.y+=p.vy*dt*72;
+
+      if(!insideBody(p.x,p.y)){
+        const q=bodyPoint();
+        p.x=lerp(p.x,q.x,.12);p.y=lerp(p.y,q.y,.12);p.vx*=.55;p.vy*=.55;
+      }
+    }
+  }
+
+  function updateNerves(dt){
+    const targets=[
+      normToScreen(.50,.08),normToScreen(.50,.23),normToScreen(.50,.315),
+      normToScreen(.27,.49),normToScreen(.73,.49),
+      normToScreen(.37,.86),normToScreen(.63,.86)
+    ];
+    for(const n of nerves){
+      if(Math.random()<.012+nerveBurst*.05)n.target=targets[(Math.random()*targets.length)|0];
+      const dx=n.target.x-n.x,dy=n.target.y-n.y,d=Math.hypot(dx,dy)||1;
+      const desiredX=dx/d*(1.5+energy*5.0+impulse*6.5),desiredY=dy/d*(1.5+energy*5.0+impulse*6.5);
+      const wanderX=Math.cos(t*4.2+n.life*17)*.55;
+      const wanderY=Math.sin(t*4.0+n.life*19)*.55;
+      const steer=clamp(.04+impulse*.38,.04,.42);
+      n.vx=lerp(n.vx,desiredX+wanderX,steer);
+      n.vy=lerp(n.vy,desiredY+wanderY,steer);
+      n.x+=n.vx*dt*56;n.y+=n.vy*dt*56;
+
+      if(!insideBody(n.x,n.y)){
+        const q=bodyPoint();n.x=lerp(n.x,q.x,.2);n.y=lerp(n.y,q.y,.2);
+      }
+      n.life-=dt*(.25+impulse*.9);
+      if(n.life<=0){
+        const q=bodyPoint();
+        n.x=q.x;n.y=q.y;n.target=q;n.life=rand(1.8,.5);
+      }
+    }
+    nerveBurst*=Math.pow(.0004,dt);
+  }
+
+  function updatePhysarum(dt){
+    const sensorAngle=.30+growth*.15+beatPulse*.48;
+    slimeNext.fill(0);
+
+    // diffuse + decay existing pheromone/trail
+    for(let y=1;y<gridH-1;y++){
+      for(let x=1;x<gridW-1;x++){
+        const i=gidx(x,y),v=slimeGrid[i];
+        slimeNext[i]=v*.90+
+          (slimeGrid[gidx(x-1,y)]+slimeGrid[gidx(x+1,y)]+slimeGrid[gidx(x,y-1)]+slimeGrid[gidx(x,y+1)])*.012;
+      }
+    }
+    const tmp=slimeGrid;slimeGrid=slimeNext;slimeNext=tmp;
+
+    for(const p of phys){
+      const s=17+growth*12;
+      const vals=[];
+      for(const a of [p.a-sensorAngle,p.a,p.a+sensorAngle]){
+        vals.push(trailAt(p.x+Math.cos(a)*s,p.y+Math.sin(a)*s))
+      }
+
+      let choice=vals.indexOf(Math.max(...vals));
+      if(Math.random()<.18+flow*.25)choice=(Math.random()*3)|0;
+      const direction=[p.a-sensorAngle,p.a,p.a+sensorAngle][choice];
+
+      const f=flowVector(p.x,p.y);
+      p.a=lerp(p.a,direction,.55);
+      p.a=lerp(p.a,Math.atan2(f.y,f.x),.07*flow);
+      p.a+=rand(.07,-.07)*(1.15-growth);
+
+      const step=5.2*(.65+growth)*(1+movementEnergy*1.5+beatPulse*.65);
+      p.x+=Math.cos(p.a)*step;p.y+=Math.sin(p.a)*step;
+      if(!insideBody(p.x,p.y)){
+        const q=bodyPoint();p.x=q.x;p.y=q.y;p.a=rand(Math.PI*2);
+      }
+      deposit(p.x,p.y,.25+growth*1.25);
+    }
+  }
+
+  function buildStaticBody(){
+    staticBodyCanvas=document.createElement("canvas");
+    staticBodyCanvas.width=SRC_W;staticBodyCanvas.height=SRC_H;
+    staticBodyCtx=staticBodyCanvas.getContext("2d");
+    staticBodyCtx.clearRect(0,0,SRC_W,SRC_H);
+    staticBodyCtx.globalAlpha=.18;
+    staticBodyCtx.drawImage(bodyMaskImage,0,0,SRC_W,SRC_H);
+    staticBodyCtx.globalAlpha=.76;
+    staticBodyCtx.drawImage(bodyTexture,0,0,SRC_W,SRC_H);
+    staticBodyCtx.globalCompositeOperation="screen";
+    staticBodyCtx.globalAlpha=.22;
+    staticBodyCtx.drawImage(neonTexture,0,0,SRC_W,SRC_H);
+    staticBodyCtx.globalCompositeOperation="source-over";
+    staticBodyCtx.globalAlpha=.82;
+    staticBodyCtx.drawImage(bodyOutline,0,0,SRC_W,SRC_H);
+  }
+
+  function drawOrganismBody(){
+    const r=bodyRect;
+
+    ctx.save();
+    const silhouetteOpacity=clamp(.78+bassEnergy*.12+beatPulse*.18,.72,1);
+    ctx.globalAlpha=silhouetteOpacity;
+    ctx.shadowColor=`rgba(55,232,255,${clamp(.18+bassEnergy*.42+beatPulse*.55,0,1)})`;
+    ctx.shadowBlur=8+bassEnergy*26+beatPulse*48;
+    ctx.drawImage(staticBodyCanvas,r.x,r.y,r.w,r.h);
+    ctx.shadowColor="transparent";
+    ctx.shadowBlur=0;
+
+    // Heart: pulse the exact visual area where the anatomical reference places it.
+    const heart=normToScreen(.50,.315);
+    const hr=15+r.scale*13+pulse*11+beatPulse*13;
+    const glow=ctx.createRadialGradient(heart.x,heart.y,1,heart.x,heart.y,hr*3);
+    glow.addColorStop(0,`rgba(255,59,191,${.25+.45*pulse+beatPulse*.25})`);
+    glow.addColorStop(.34,`rgba(142,31,53,${.18+.28*pulse})`);
+    glow.addColorStop(1,"rgba(142,31,53,0)");
+    ctx.globalAlpha=1;ctx.fillStyle=glow;
+    ctx.beginPath();ctx.arc(heart.x,heart.y,hr*3,0,Math.PI*2);ctx.fill();
+
+    ctx.strokeStyle="#ff3bbf";
+    ctx.globalAlpha=.18+.42*pulse+beatPulse*.38;ctx.lineWidth=1.4+pulse*1.4+beatPulse*2.2;
+    ctx.beginPath();ctx.arc(heart.x,heart.y,hr,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawBlood(){
+    ctx.save();
+    ctx.globalCompositeOperation="screen";
+    for(const p of blood){
+      const slot=Math.floor((p.seed%1)*CELL_COLORS.length);
+      const c=CELL_COLORS[slot];
+      ctx.fillStyle=c;
+      ctx.globalAlpha=slot===4?.42:.58+pulse*.17;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r*(.9+energy*.35+bassEnergy*.3),0,Math.PI*2);ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawNerves(){
+    ctx.save();
+    ctx.globalCompositeOperation="screen";
+    for(const n of nerves){
+      const a=.10+clamp(impulse+.14,0,1)*(.25+.55*energy);
+      ctx.globalAlpha=Math.min(.82,a+.12+impulse*.2);
+      const c=n.life%2>.9?COLORS.violet:COLORS.cyan;
+      ctx.strokeStyle=c;ctx.lineWidth=1.1+n.sz*.15;
+      ctx.beginPath();ctx.arc(n.x,n.y,n.sz*(.62+energy*.48),0,Math.PI*2);ctx.stroke();
+      if(nerveBurst>.06||impulse>.38){
+        ctx.globalAlpha=.08+impulse*.15;ctx.lineWidth=.8;
+        ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(n.target.x,n.target.y);ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawPhysarum(){
+    ctx.save();ctx.globalCompositeOperation="screen";ctx.lineWidth=1.1+beatPulse*3.8;
+    ctx.shadowColor=beatPulse>.05?COLORS.cyan:COLORS.lime;
+    ctx.shadowBlur=beatPulse*18;
+    const r=rect();
+    const sx=r.w/gridW,sy=r.h/gridH;
+    for(let y=0;y<gridH;y+=2){
+      for(let x=0;x<gridW;x+=2){
+        const v=slimeGrid[gidx(x,y)];
+        if(v<1.45)continue;
+        const px=r.x+(x+.5)*sx,py=r.y+(y+.5)*sy;
+        ctx.globalAlpha=clamp(clamp(v/19,0,.55)*(1+beatPulse*2.2),0,1);
+        ctx.strokeStyle=beatPulse>.12?COLORS.cyan:((x+y)%4===0?COLORS.lime:COLORS.pink);
+        
+        ctx.beginPath();ctx.arc(px,py,1+v*.014,0,Math.PI*2);ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawSparks(dt){
+    if(Math.random()<.25+energy*2.3){
+      const p=bodyPoint();
+      sparks.push({
+        x:p.x,y:p.y,vx:rand(2.4,-2.4),vy:rand(2.4,-2.4),
+        life:rand(.55,.12),c:[COLORS.cyan,COLORS.pink,COLORS.lime][(Math.random()*3)|0]
+      });
+    }
+    ctx.save();ctx.globalCompositeOperation="screen";
+    for(let i=sparks.length-1;i>=0;i--){
+      const p=sparks[i];p.life-=dt;p.x+=p.vx*dt*66;p.y+=p.vy*dt*66;
+      if(p.life<=0){sparks.splice(i,1);continue}
+      ctx.globalAlpha=p.life*.58;ctx.fillStyle=p.c;
+      ctx.beginPath();ctx.arc(p.x,p.y,rand(2,.8),0,Math.PI*2);ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawField(){
+    if(!mouse.inside)return;
+    ctx.save();ctx.globalCompositeOperation="screen";
+    const r=mouse.down?92:58;
+    const g=ctx.createRadialGradient(mouse.x,mouse.y,0,mouse.x,mouse.y,r);
+    g.addColorStop(0,"rgba(55,232,255,.16)");
+    g.addColorStop(.42,"rgba(255,59,191,.06)");
+    g.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(mouse.x,mouse.y,r,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=mouse.down?COLORS.pink:COLORS.cyan;ctx.globalAlpha=.34;ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(mouse.x,mouse.y,r,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+  }
+
+  function setMode(){
+    const tags=[];
+    if(pulse>.32)tags.push("PULSE");
+    if(flow>.45)tags.push("FLOW");
+    if(impulse>.30)tags.push("IMPULSE");
+    if(growth>.48)tags.push("GROWTH");
+    modeEl.textContent=tags.length?`ORGANISM / ${tags.join(" + ")}`:"ORGANISM / REST";
+    const a=clamp(pulse*.27+flow*.22+impulse*.23+growth*.28,0,1);
+    activityFill.style.width=(a*100).toFixed(0)+"%";
+    activityText.textContent=(a*100).toFixed(0)+"%";
+  }
+
+  function toggle(name){
+    if(name==="pulse")targetPulse=pulse>.32?.05:.78;
+    if(name==="flow")targetFlow=flow>.45?.18:.82;
+    if(name==="impulse"){
+      targetImpulse=impulse>.30?.02:.92;
+      nerveBurst=1;
+      if(targetImpulse>.3){
+        const targets=[normToScreen(.50,.08),normToScreen(.50,.23),normToScreen(.50,.315),normToScreen(.27,.49),normToScreen(.73,.49),normToScreen(.37,.86),normToScreen(.63,.86)];
+        for(const n of nerves)n.target=targets[(Math.random()*targets.length)|0];
+      }
+    }
+    if(name==="growth")targetGrowth=growth>.48?.18:.84;
+  }
+
+  function setButtons(){
+    document.getElementById("pulseBtn").classList.toggle("active",pulse>.32);
+    document.getElementById("flowBtn").classList.toggle("active",flow>.45);
+    document.getElementById("impulseBtn").classList.toggle("active",impulse>.30);
+    document.getElementById("growthBtn").classList.toggle("active",growth>.48);
+  }
+
+  function softReset(){
+    targetPulse=pulse=.05;targetFlow=flow=.25;targetImpulse=impulse=.02;targetGrowth=growth=.28;
+    nerveBurst=0;slimeGrid.fill(0);slimeNext.fill(0);sparks=[];
+    for(const p of phys){const q=bodyPoint();p.x=q.x;p.y=q.y;p.a=rand(Math.PI*2)}
+    for(const p of blood){const q=bodyPoint();p.x=q.x;p.y=q.y;p.vx=rand(1,-1);p.vy=rand(1,-1)}
+  }
+
+  document.getElementById("pulseBtn").onclick=()=>toggle("pulse");
+  document.getElementById("flowBtn").onclick=()=>toggle("flow");
+  document.getElementById("impulseBtn").onclick=()=>toggle("impulse");
+  document.getElementById("growthBtn").onclick=()=>toggle("growth");
+  document.getElementById("hideBtn").onclick=()=>panel.classList.toggle("hidden");
+
+  const startBtn=document.getElementById("startBtn");
+  startBtn.addEventListener("click",async()=>{
+    startBtn.disabled=true;
+    startBtn.textContent="INICIANDO...";
+    try{
+      const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+      if(!AudioContextClass)throw new Error("Web Audio no está disponible en este navegador");
+      if(!audioContext){
+        audioContext=new AudioContextClass();
+        analyser=audioContext.createAnalyser();
+        analyser.fftSize=4096;
+        analyser.minDecibels=-85;
+        analyser.maxDecibels=-20;
+        analyser.smoothingTimeConstant=.18;
+        audioData=new Uint8Array(analyser.frequencyBinCount);
+        audioElement=new Audio("./assets/stick_stickly.mp3");
+        audioElement.preload="auto";
+        audioElement.addEventListener("ended",()=>{
+          startBtn.hidden=false;
+          startBtn.disabled=false;
+          startBtn.textContent="REINICIAR ORGANISMO";
+        });
+        const source=audioContext.createMediaElementSource(audioElement);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+      }
+      if(audioElement.ended){audioElement.currentTime=0;beatArmed=true}
+      await audioContext.resume();
+      await audioElement.play();
+      startBtn.hidden=true;
+    }catch(error){
+      console.error(error);
+      startBtn.disabled=false;
+      startBtn.textContent="NO SE PUDO INICIAR · REINTENTAR";
+    }
+  });
+
+  function sampleAudio(now){
+    if(!analyser||!audioData||!audioElement)return;
+    if(audioElement.paused){
+      bassEnergy=lerp(bassEnergy,0,.12);
+      trebleEnergy=lerp(trebleEnergy,0,.12);
+      movementEnergy=lerp(movementEnergy,.08,.08);
+      return;
+    }
+    analyser.getByteFrequencyData(audioData);
+    const binHz=audioContext.sampleRate/analyser.fftSize;
+    const bandRms=(lowHz,highHz)=>{
+      const first=Math.max(1,Math.ceil(lowHz/binHz));
+      const last=Math.min(audioData.length-1,Math.floor(highHz/binHz));
+      let power=0,count=0;
+      for(let i=first;i<=last;i++){
+        const magnitude=audioData[i]/255;
+        power+=magnitude*magnitude;
+        count++;
+      }
+      return count?Math.sqrt(power/count):0;
+    };
+
+    const rawBass=bandRms(20,120);
+    const localAverage=bassHistory.length
+      ?bassHistory.reduce((sum,value)=>sum+value,0)/bassHistory.length
+      :0;
+    const threshold=Math.max(.075,localAverage*1.3,localAverage+.025);
+    if(rawBass<Math.max(.035,localAverage*.88))beatArmed=true;
+    if(bassHistory.length>=8&&beatArmed&&now>=nextBeatAt&&rawBass>threshold){
+      beatPulse=1;
+      auraColorIndex = (auraColorIndex + 1) % auraColors.length;
+      nextBeatAt=now+200;
+      beatArmed=false;
+    }
+    bassHistory.push(rawBass);
+    if(bassHistory.length>BASS_HISTORY_SIZE)bassHistory.shift();
+    bassEnergy=lerp(bassEnergy,rawBass,.42);
+    const midHigh=bandRms(250,6000);
+    const globalRms=bandRms(20,12000);
+    trebleEnergy=lerp(trebleEnergy,midHigh,.12);
+    movementEnergy=lerp(movementEnergy,clamp(midHigh*.72+globalRms*.28,.04,1),.14);
+  }
+
+  addEventListener("pointermove",e=>{
+    mouse.x=e.clientX;mouse.y=e.clientY;mouse.inside=true;
+  });
+  addEventListener("pointerleave",()=>{mouse.inside=false;mouse.down=false});
+  addEventListener("pointerdown",()=>{mouse.down=true});
+  addEventListener("pointerup",()=>{mouse.down=false});
+  addEventListener("keydown",e=>{
+    if(e.repeat||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement)return;
+    const k=e.key.toLowerCase();
+    if(k==="a")toggle("pulse");
+    if(k==="s")toggle("flow");
+    if(k==="d")toggle("impulse");
+    if(k==="f")toggle("growth");
+    if(k==="h")panel.classList.toggle("hidden");
+    if(e.code==="Space"){
+      e.preventDefault();
+      if(!document.fullscreenElement)document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    }
+    if(k==="r")softReset();
+  });
+  addEventListener("dblclick",()=>softReset());
+
+  async function start(){
+    resize();
+
+    const [mask,tex,outline]=await Promise.all([
+      loadImage("assets/body_mask.png"),
+      loadImage("assets/anatomy_texture.png"),
+      loadImage("assets/body_outline.png")
+    ]);
+
+    bodyMaskImage=mask;bodyTexture=tex;bodyOutline=outline;
+    initMaskData();
+    neonTexture=buildNeonTexture();
+    buildStaticBody();
+    initAgents();
+
+    loading.classList.add("hidden");
+    startBtn.disabled=false;
+    requestAnimationFrame(frame);
+  }
+
+  function frame(now){
+    const dt=Math.min((now-last)/1000,.032);last=now;t+=dt;
+
+    pulse=lerp(pulse,targetPulse,1-Math.pow(.0009,dt));
+    flow=lerp(flow,targetFlow,1-Math.pow(.0009,dt));
+    impulse=lerp(impulse,targetImpulse,1-Math.pow(.0012,dt));
+    growth=lerp(growth,targetGrowth,1-Math.pow(.0010,dt));
+    // IMPULSE is a brief seek burst; manual activation remains the trigger.
+    targetImpulse*=Math.pow(.003,dt);
+
+    sampleAudio(now);
+    beatPulse*=Math.exp(-dt*11);
+    beatFlag.classList.toggle("active",beatPulse>.16);
+    energy=clamp(pulse*.54+flow*.13+impulse*.14+growth*.17+bassEnergy*.025,.03,1);
+
+    // Clear the previous frame while retaining the existing motion trails.
+    ctx.fillStyle="rgba(7,6,11,.14)";
+    ctx.fillRect(0,0,W,H);
+
+    // Subtle, audio-reactive backstage glow.
+    const breath=Math.sin(Date.now()*.001);
+    const glowEnergy=clamp(trebleEnergy,0,1);
+    const haloAlpha=clamp(.025+glowEnergy*.035+(breath+1)*.005,.02,.08);
+    const haloBaseRadius=Math.min(W,H)*.36;
+    const halos=[
+      {x:.20,y:.32,color:"255,59,191",phase:0},
+      {x:.79,y:.43,color:"142,77,255",phase:2.1},
+      {x:.48,y:.83,color:"216,255,62",phase:4.2}
+    ];
+
+    ctx.save();
+    for(const halo of halos){
+      const pulse=Math.sin(Date.now()*.001+halo.phase);
+      const x=W*halo.x+pulse*(12+glowEnergy*22);
+      const y=H*halo.y+breath*(8+glowEnergy*14);
+      const radius=haloBaseRadius+pulse*16+glowEnergy*28;
+      const gradient=ctx.createRadialGradient(x,y,0,x,y,radius);
+      gradient.addColorStop(0,`rgba(${halo.color},.72)`);
+      gradient.addColorStop(.42,`rgba(${halo.color},.24)`);
+      gradient.addColorStop(1,`rgba(${halo.color},0)`);
+      ctx.globalAlpha=haloAlpha;
+      ctx.fillStyle=gradient;
+      ctx.beginPath();
+      ctx.arc(x,y,radius,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Screen-edge aura changes color on each beat and follows its decay.
+    ctx.save();
+    ctx.globalAlpha=clamp(beatPulse*.72,0,.72);
+    ctx.strokeStyle=auraColors[auraColorIndex];
+    ctx.lineWidth=1+beatPulse*6;
+    ctx.shadowColor=auraColors[auraColorIndex];
+    ctx.shadowBlur=beatPulse*48;
+    ctx.strokeRect(0,0,W,H);
+    ctx.restore();
+
+    updateBlood(dt);
+    updateNerves(dt);
+    updatePhysarum(dt);
+
+    drawOrganismBody();
+    drawPhysarum();
+    drawBlood();
+    drawNerves();
+    drawSparks(dt);
+    drawField();
+
+    setMode();setButtons();
+    requestAnimationFrame(frame);
+  }
+
+  addEventListener("resize",()=>{resize();});
+  start().catch(err=>{
+    console.error(err);
+    loading.textContent="no se pudieron cargar los assets del organismo";
+  });
+})();
+</script>
+</body>
+</html>
