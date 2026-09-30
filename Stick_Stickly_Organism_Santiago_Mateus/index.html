@@ -199,10 +199,16 @@ button.active{
   let gridW=120, gridH=80, slimeGrid, slimeNext;
   let audioContext=null, analyser=null, audioElement=null, audioData=null;
   let bassEnergy=0, trebleEnergy=0, movementEnergy=.08;
-  const bassHistory=[];
-  const BASS_HISTORY_SIZE=48;
+  let beatAnalyser=null, beatData=null, prevBeat=null;
+  const fluxHistory=[];
+  const FLUX_HISTORY_SIZE=43;
   const auraColors = ['#FF00FF', '#CCFF00', '#00FFFF', '#8A2BE2'];
   let auraColorIndex = 0;
+  let auraPulse=0, nextAuraAt=0, edmMode=false;
+  const EDM_START=169;        // segundos (2:49): antes = halo clásico / desde aquí = halo EDM explosivo
+  const CLASSIC_SHADOW=false; // true = shadowBlur original en 0–2:49 (más fiel, pero más pesado para la GPU)
+  const bassHistory=[];
+  const BASS_HISTORY_SIZE=48;
 
   const COLORS = {
     bg:"#07060b", bone:"#ebe4da", tissue:"#c98c86", blood:"#8e1f35",
@@ -761,6 +767,13 @@ button.active{
         analyser.maxDecibels=-20;
         analyser.smoothingTimeConstant=.18;
         audioData=new Uint8Array(analyser.frequencyBinCount);
+        beatAnalyser=audioContext.createAnalyser();
+        beatAnalyser.fftSize=2048;
+        beatAnalyser.smoothingTimeConstant=0;
+        beatAnalyser.minDecibels=-80;
+        beatAnalyser.maxDecibels=-5;
+        beatData=new Uint8Array(beatAnalyser.frequencyBinCount);
+        prevBeat=new Uint8Array(beatAnalyser.frequencyBinCount);
         audioElement=new Audio("./assets/stick_stickly.mp3");
         audioElement.preload="auto";
         audioElement.addEventListener("ended",()=>{
@@ -770,6 +783,7 @@ button.active{
         });
         const source=audioContext.createMediaElementSource(audioElement);
         source.connect(analyser);
+        source.connect(beatAnalyser);
         analyser.connect(audioContext.destination);
       }
       if(audioElement.ended){audioElement.currentTime=0;beatArmed=true}
@@ -806,6 +820,8 @@ button.active{
     };
 
     const rawBass=bandRms(20,120);
+
+    // Detector original: controla cuerpo y partículas (beatPulse)
     const localAverage=bassHistory.length
       ?bassHistory.reduce((sum,value)=>sum+value,0)/bassHistory.length
       :0;
@@ -813,12 +829,37 @@ button.active{
     if(rawBass<Math.max(.035,localAverage*.88))beatArmed=true;
     if(bassHistory.length>=8&&beatArmed&&now>=nextBeatAt&&rawBass>threshold){
       beatPulse=1;
-      auraColorIndex = (auraColorIndex + 1) % auraColors.length;
+      auraColorIndex=(auraColorIndex+1)%auraColors.length;
       nextBeatAt=now+200;
       beatArmed=false;
     }
     bassHistory.push(rawBass);
     if(bassHistory.length>BASS_HISTORY_SIZE)bassHistory.shift();
+
+    // Beat por flux espectral (subida súbita de graves) en un analizador aparte con más
+    // rango dinámico: sigue detectando aunque el tema esté fuerte y saturado.
+    beatAnalyser.getByteFrequencyData(beatData);
+    const bHz=audioContext.sampleRate/beatAnalyser.fftSize;
+    const b0=Math.max(1,Math.ceil(30/bHz)), b1=Math.min(beatData.length-1,Math.floor(250/bHz));
+    let flux=0;
+    for(let i=b0;i<=b1;i++){
+      const d=beatData[i]-prevBeat[i];
+      if(d>0)flux+=d;
+      prevBeat[i]=beatData[i];
+    }
+    flux/=(b1-b0+1)*255;
+    let fluxMean=0;
+    for(let i=0;i<fluxHistory.length;i++)fluxMean+=fluxHistory[i];
+    fluxMean=fluxHistory.length?fluxMean/fluxHistory.length:0;
+    const beatThreshold=Math.max(.05,fluxMean*1.7);
+    edmMode=audioElement.currentTime>=EDM_START;
+    if(edmMode&&fluxHistory.length>=8&&now>=nextAuraAt&&flux>beatThreshold){
+      auraPulse=1;
+      auraColorIndex=(auraColorIndex+1)%auraColors.length;
+      nextAuraAt=now+170;
+    }
+    fluxHistory.push(flux);
+    if(fluxHistory.length>FLUX_HISTORY_SIZE)fluxHistory.shift();
     bassEnergy=lerp(bassEnergy,rawBass,.42);
     const midHigh=bandRms(250,6000);
     const globalRms=bandRms(20,12000);
@@ -881,6 +922,7 @@ button.active{
 
     sampleAudio(now);
     beatPulse*=Math.exp(-dt*11);
+    auraPulse*=Math.exp(-dt*(edmMode?7:11));
     beatFlag.classList.toggle("active",beatPulse>.16);
     energy=clamp(pulse*.54+flow*.13+impulse*.14+growth*.17+bassEnergy*.025,.03,1);
 
@@ -905,16 +947,49 @@ button.active{
     ctx.restore();
 
     // Aura del beat sin shadowBlur: trazo ancho y tenue + trazo fino
-    if(beatPulse>.02){
-      ctx.save();
-      ctx.strokeStyle=auraColors[auraColorIndex];
-      ctx.globalAlpha=clamp(beatPulse*.18,0,.18);
-      ctx.lineWidth=4+beatPulse*26;
-      ctx.strokeRect(0,0,W,H);
-      ctx.globalAlpha=clamp(beatPulse*.72,0,.72);
-      ctx.lineWidth=1+beatPulse*6;
-      ctx.strokeRect(0,0,W,H);
-      ctx.restore();
+    if(edmMode){
+      // Desde EDM_START: halo explosivo, dispara con cada kick electrónico
+      const b=auraPulse;
+      if(b>.01){
+        ctx.save();
+        ctx.strokeStyle=auraColors[auraColorIndex];
+        ctx.globalCompositeOperation="lighter";
+        ctx.globalAlpha=clamp(b*.28,0,.4);
+        for(let i=1;i<=6;i++){
+          ctx.lineWidth=2*(8+b*90*i/6);
+          ctx.strokeRect(0,0,W,H);
+        }
+        ctx.globalAlpha=clamp(b*.95,0,.95);
+        ctx.lineWidth=1+b*10;
+        ctx.strokeRect(0,0,W,H);
+        ctx.restore();
+      }
+    }else{
+      // Antes de EDM_START: halo clásico ligado al detector original (beatPulse)
+      const b=beatPulse;
+      if(CLASSIC_SHADOW){
+        ctx.save();
+        ctx.globalAlpha=clamp(b*.72,0,.72);
+        ctx.strokeStyle=auraColors[auraColorIndex];
+        ctx.lineWidth=1+b*6;
+        ctx.shadowColor=auraColors[auraColorIndex];
+        ctx.shadowBlur=b*48;
+        ctx.strokeRect(0,0,W,H);
+        ctx.restore();
+      }else if(b>.02){
+        ctx.save();
+        ctx.strokeStyle=auraColors[auraColorIndex];
+        ctx.globalCompositeOperation="lighter";
+        ctx.globalAlpha=clamp(b*.24,0,.3);
+        for(let i=1;i<=5;i++){
+          ctx.lineWidth=2*(6+b*50*i/5);
+          ctx.strokeRect(0,0,W,H);
+        }
+        ctx.globalAlpha=clamp(b*.9,0,.9);
+        ctx.lineWidth=1+b*7;
+        ctx.strokeRect(0,0,W,H);
+        ctx.restore();
+      }
     }
 
     updateBlood(dt);
