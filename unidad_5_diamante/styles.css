@@ -1,0 +1,20 @@
+:root{color-scheme:dark;--ink:#f2f4ed;--muted:#9ca9ae;--accent:#f6d36a}
+*{box-sizing:border-box}body{margin:0;background:#080e14;color:var(--ink);font-family:Arial,Helvetica,sans-serif;overflow:hidden}main{height:100dvh;min-height:360px;position:relative}canvas{position:absolute;inset:0;width:100%;height:100%}header,footer{position:absolute;left:4.5%;right:4.5%;display:flex;align-items:center;justify-content:space-between;z-index:2}header{top:5%;font-size:11px;letter-spacing:2.3px}.brand{font-weight:700;display:flex;gap:12px;align-items:center}.brand i{width:6px;height:6px;background:var(--accent);border-radius:50%}.edition{color:var(--muted);font-size:10px}#count{font-variant-numeric:tabular-nums;color:var(--muted);letter-spacing:2px}.copy{position:absolute;top:29%;left:7%;width:37%;pointer-events:none}#chapter{color:var(--accent);font-size:10px;letter-spacing:3px;text-transform:uppercase;margin:0 0 27px}h1{font-size:clamp(25px,3.75vw,68px);font-weight:500;letter-spacing:-.055em;line-height:1.08;margin:0;text-wrap:balance}body.long h1{font-size:clamp(24px,3.2vw,56px)}footer{bottom:5%;}.signature{font-size:8px;letter-spacing:2.3px;color:#a0adb4}nav{display:flex;gap:9px;align-items:center}button{border:1px solid #46505a;background:#0c141dbb;color:#ebeee9;border-radius:50%;width:40px;height:40px;font-size:17px;cursor:pointer}button:hover,button:focus-visible{background:#243442;border-color:#ead289;outline:2px solid transparent}button:disabled{opacity:.3;cursor:default}.divider{width:16px}#progress{position:absolute;bottom:0;left:0;height:2px;background:var(--accent);transition:width .6s;width:7.69%}#qr{display:none;position:absolute;right:5%;bottom:18%;width:min(12vw,150px);aspect-ratio:1;border:1px solid #f6d36a30;background:#080e14}body.final #qr{display:block}dialog{max-width:450px;padding:36px;background:#111c26;color:var(--ink);border:1px solid #405362;border-radius:12px}dialog::backdrop{background:#0009;backdrop-filter:blur(6px)}dialog h2{font-weight:500;font-size:24px}dialog p{line-height:1.9;color:#b9c5cd}dialog button{border-radius:6px;width:auto;padding:0 20px;font-size:14px}
+@media(max-width:700px),(max-aspect-ratio:1/1){.edition,.signature{display:none}.copy{top:16%;left:7%;width:86%}h1,body.long h1{font-size:clamp(25px,6vw,38px);max-width:580px}#chapter{margin-bottom:15px}footer{justify-content:flex-end}header{top:4%}body.final #qr{bottom:15%;width:80px}}
+@media(prefers-reduced-motion:reduce){#progress{transition:none}}
+
+
+/* Documentary context stays behind the continuous particle system. */
+.photographs,.photo-shade{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.scene-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:var(--photo-focus,50% 60%);opacity:0;filter:saturate(.48) brightness(.8);transition:opacity 1.4s ease}
+.scene-photo.visible{opacity:.67}
+.photo-shade{background:linear-gradient(90deg,rgba(8,14,20,.32) 0%,rgba(8,14,20,.55) 39%,rgba(8,14,20,.94) 58%,rgba(8,14,20,.98) 100%),linear-gradient(180deg,#080e14c9 0%,#080e1470 37%,#080e1410 66%,#080e14e6 100%)}
+.copy{z-index:1;text-shadow:0 2px 22px #080e14}
+body.has-photo .copy{background:radial-gradient(ellipse at 35% 45%,#080e148a,transparent 74%)}
+@media(max-width:700px),(max-aspect-ratio:1/1){
+ .photographs{bottom:40%}
+ .scene-photo{object-position:var(--photo-focus,50% 60%)}
+ .photo-shade{background:linear-gradient(180deg,#080e1499 0%,#080e1470 22%,#080e1425 34%,#080e14c9 48%,#080e14 61%)}
+ .scene-photo.visible{opacity:.75}
+}
+@media(prefers-reduced-motion:reduce){.scene-photo{transition:none}}
