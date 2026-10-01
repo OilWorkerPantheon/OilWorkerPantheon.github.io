@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="icon" href="ijodeputa (1).ico">
+    <title>OilWorkerPantheon — Dev Notes</title>
+    <style>
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        .game-card {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .game-cover {
+            display: block;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 18px;
+        }
+
+        .game-card .note-body {
+            flex: 1;
+        }
+
+        .game-card .novel-btn {
+            align-self: flex-start;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">Santiago Mateus<br>DEV NOTES HUB</div>
+        <div class="logo-sub">solo indie developer - OilWorkerPantheon</div>
+        <div class="visitor-bar">
+            <span class="visitor-dot"></span>
+            <span>VISITORS:</span>
+            <span id="visitor-count">——</span>
+        </div>
+    </header>
+
+    <nav>
+        <a href="index.html#notes">NOTES</a>
+        <a href="games.html">MY GAMES</a>
+        <a href="index.html#about">ABOUT</a>
+        <a href="https://twitter.com/OilWorkerP4nth" target="_blank">TWITTER</a>
+    </nav>
+
+    <main>
+        <div class="section-label">// MY GAMES</div>
+
+        <section class="games-grid" aria-label="Game projects">
+            <!-- GAME 1: Outlaws Hand -->
+                <div class="game-card">
+                    <div>
+                        <div style="width:100%; height:180px; background:rgba(0,0,0,0.5); border-radius:4px; margin-bottom:15px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.1);">
+                            <span style="font-family:'Press Start 2P'; font-size:10px; color:#9d96a3;">// OUTLAWS HAND //</span>
+                        </div>
+                        <h3>Outlaws Hand</h3>
+                        <p>A tactical lane-defense strategy blending poker hand combinations with specialized troop deployment. Defend your lines against alien waves using card-driven synergy—think Plants vs. Zombies mechanics meets poker mechanics.</p>
+                    </div>
+                    <a href="#" class="novel-btn" target="_blank">VIEW PROJECT</a>
+                </div>
+        </section>
+    </main>
+
+    <footer>
+        <script src="jueputavida.js"></script>
+        <span>OilWorkerPantheon</span> — no ads. no tracking. just dev notes.
+    </footer>
+</body>
+</html>
