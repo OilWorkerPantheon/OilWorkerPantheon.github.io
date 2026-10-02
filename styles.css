@@ -1,268 +1,289 @@
-    :root {
-    --bg: #0a0e14;
-    --bg2: #0f1520;
-    --border: #1e2a38;
-    --text: #8fa8be;
-    --text-dim: #3a4f62;
-    --red: #c0392b;
-    --red-bright: #e05040;
-    --blue: #1a5fa0;
-    --blue-bright: #2a7fd4;
-    --white: #d0dde8;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 14px;
-    line-height: 1.8;
-  }
-
-  /* PIXEL GRID BACKGROUND */
-  body {
-    background-image:
-      linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 24px 24px;
-    background-color: var(--bg);
-  }
-
-  /* ═══════════ HEADER ═══════════ */
-  header {
-    text-align: center;
-    padding: 56px 20px 48px;
-    border-bottom: 2px solid var(--border);
-    background: var(--bg);
-    image-rendering: pixelated;
-  }
-
-  .logo {
-    font-family: 'Press Start 2P', monospace;
-    font-size: clamp(13px, 2.5vw, 22px);
-    line-height: 1.8;
-    background: linear-gradient(
-      180deg,
-      var(--red-bright) 0%,
-      #aa44aa 50%,
-      var(--blue-bright) 100%
-    );
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: 2px;
-  }
-
-  .logo-sub {
-    font-size: 10px;
-    color: var(--text-dim);
-    margin-top: 16px;
-    letter-spacing: 4px;
-  }
-
-  .visitor-bar {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 24px;
-    padding: 8px 18px;
-    border: 1px solid var(--border);
-    font-size: 10px;
-    color: var(--text-dim);
-    letter-spacing: 2px;
-    background: var(--bg2);
-  }
-
-  .visitor-dot {
-    width: 6px; height: 6px;
-    background: var(--red-bright);
-    animation: blink 1.2s steps(1) infinite;
-  }
-
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-  }
-
-  #visitor-count { color: var(--red-bright); }
-
-  /* ═══════════ NAV ═══════════ */
-  nav {
-    display: flex;
-    justify-content: center;
-    border-bottom: 2px solid var(--border);
-    background: var(--bg2);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  nav a {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 9px;
-    color: var(--text-dim);
-    text-decoration: none;
-    padding: 14px 22px;
-    border-right: 1px solid var(--border);
-    letter-spacing: 1px;
-    transition: color 0.1s, background 0.1s;
-  }
-
-  nav a:first-child { border-left: 1px solid var(--border); }
-  nav a:hover { color: var(--white); background: rgba(255,255,255,0.02); }
-
-  /* ═══════════ MAIN ═══════════ */
-  main {
-    max-width: 780px;
-    margin: 0 auto;
-    padding: 48px 20px 80px;
-  }
-
-  .section-label {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 8px;
-    color: var(--text-dim);
-    letter-spacing: 4px;
-    margin-bottom: 24px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  /* ═══════════ CARD ═══════════ */
-  .note-card {
-    display: flex;
-    border: 1px solid var(--border);
-    background: var(--bg2);
-    margin-bottom: 16px;
-  }
-
-  .note-card:hover {
-    border-color: var(--red);
-  }
-
-  /* DATE */
-  .note-date {
-    width: 72px;
-    min-width: 72px;
-    border-right: 1px solid var(--border);
-    padding: 20px 8px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    background: var(--bg);
-  }
-
-  .note-date .day {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 18px;
-    color: var(--red-bright);
-    line-height: 1;
-  }
-
-  .note-date .month {
-    font-size: 9px;
-    color: var(--text-dim);
-    letter-spacing: 1px;
-  }
-
-  .note-date .year {
-    font-size: 8px;
-    color: var(--text-dim);
-    opacity: 0.4;
-  }
-
-  /* CONTENT */
-  .note-content {
-    padding: 20px 24px;
-    flex: 1;
-  }
-
- .note-tag {
-    color: #a8b2d1;
-    font-weight: bold;
+:root {
+  --bg: #0a0e14;
+  --bg2: #0f1520;
+  --border: #1e2a38;
+  --text: #8fa8be;
+  --text-dim: #3a4f62;
+  --red: #c0392b;
+  --red-bright: #e05040;
+  --blue: #1a5fa0;
+  --blue-bright: #2a7fd4;
+  --white: #d0dde8;
 }
 
-  .note-title, .game-card h3 {
-    color: #ffffff;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  line-height: 1.8;
 }
 
-  .note-body p, .game-card p {
-    color: #e2e8f0; /* Un blanco roto mucho más luminoso que el gris actual */
-    font-size: 14px; /* Un poco más grande */
-    line-height: 1.7; /* Más aire entre líneas */
-    font-family: 'Share Tech Mono', monospace; /* Asegura que el cuerpo no use la fuente pixelada gruesa */
+/* PIXEL GRID BACKGROUND */
+body {
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-color: var(--bg);
 }
 
-  .note-body p + p { margin-top: 10px; }
+/* ═══════════ HEADER ═══════════ */
+header {
+  text-align: center;
+  padding: 56px 20px 48px;
+  border-bottom: 2px solid var(--border);
+  background: var(--bg);
+  image-rendering: pixelated;
+}
 
-  /* CARD FOOTER */
-  .note-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-top: 1px solid var(--border);
-    padding-top: 12px;
-  }
+.logo {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(13px, 2.5vw, 22px);
+  line-height: 1.8;
+  background: linear-gradient(
+    180deg,
+    var(--red-bright) 0%,
+    #aa44aa 50%,
+    var(--blue-bright) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 2px;
+}
 
-  .like-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 1px;
-    padding: 5px 12px;
-    cursor: pointer;
-    transition: all 0.1s;
-  }
+.logo-sub {
+  font-size: 10px;
+  color: #a8b2d1; /* Aclarado */
+  margin-top: 16px;
+  letter-spacing: 4px;
+}
 
-  .like-btn:hover { border-color: var(--red-bright); color: var(--red-bright); }
-  .like-btn.liked { border-color: var(--red-bright); color: var(--red-bright); }
+.visitor-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+  padding: 8px 18px;
+  border: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  background: var(--bg2);
+}
 
-  .note-id {
-    font-size: 9px;
-    color: var(--text-dim);
-    opacity: 0.4;
-    letter-spacing: 2px;
-  }
+.visitor-dot {
+  width: 6px; height: 6px;
+  background: var(--red-bright);
+  animation: blink 1.2s steps(1) infinite;
+}
 
-  /* ═══════════ FOOTER ═══════════ */
-  footer {
-    border-top: 2px solid var(--border);
-    text-align: center;
-    padding: 28px 20px;
-    font-size: 9px;
-    color: var(--text-dim);
-    letter-spacing: 3px;
-    background: var(--bg2);
-  }
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
 
-  footer span { color: var(--red-bright); }
+#visitor-count { color: var(--red-bright); }
 
-  @media (max-width: 500px) {
-    .note-date { width: 56px; min-width: 56px; }
-    .note-date .day { font-size: 14px; }
-    .note-title { font-size: 10px; }
-    nav a { font-size: 7px; padding: 12px 12px; }
-  }
+/* ═══════════ NAV ═══════════ */
+nav {
+  display: flex;
+  justify-content: center;
+  border-bottom: 2px solid var(--border);
+  background: var(--bg2);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
 
-/* BOTÓN NOVELA */
+nav a {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: #a8b2d1 !important; /* Aclarado */
+  font-weight: bold;
+  text-decoration: none;
+  padding: 14px 22px;
+  border-right: 1px solid var(--border);
+  letter-spacing: 1px;
+  transition: color 0.2s ease, text-shadow 0.2s ease, background 0.1s;
+}
+
+nav a:first-child { border-left: 1px solid var(--border); }
+nav a:hover { 
+  color: #ffffff !important; 
+  background: rgba(255,255,255,0.02); 
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+}
+
+/* ═══════════ MAIN ═══════════ */
+main {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 48px 20px 80px;
+}
+
+.section-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: #e2e8f0; /* Iluminado */
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+  font-weight: bold;
+  letter-spacing: 4px;
+  margin-bottom: 24px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ═══════════ CARD ═══════════ */
+.note-card {
+  display: flex;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  margin-bottom: 16px;
+}
+
+.note-card:hover {
+  border-color: var(--red);
+}
+
+/* DATE */
+.note-date {
+  width: 72px;
+  min-width: 72px;
+  border-right: 1px solid var(--border);
+  padding: 20px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+}
+
+.note-date .day {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 18px;
+  color: var(--red-bright);
+  line-height: 1;
+}
+
+.note-date .month {
+  font-size: 9px;
+  color: #a8b2d1; /* Aclarado */
+  letter-spacing: 1px;
+}
+
+.note-date .year {
+  font-size: 8px;
+  color: #a8b2d1; /* Aclarado */
+  opacity: 0.6; /* Ligeramente más opaco para que se lea mejor */
+}
+
+/* CONTENT */
+.note-content {
+  padding: 20px 24px;
+  flex: 1;
+}
+
+.note-tag {
+  color: #a8b2d1;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.note-title, .game-card h3 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 14px;
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.note-body p, .game-card p {
+  color: #e2e8f0; 
+  font-size: 14px; 
+  line-height: 1.7; 
+  font-family: 'Share Tech Mono', monospace; 
+}
+
+.note-body p + p { margin-top: 10px; }
+
+/* BOTÓN NOVELA / PROYECTOS */
 .novel-btn {
-    border: 1px solid #37e8ff;
-    color: #37e8ff;
-    background: rgba(55, 232, 255, 0.05);
-    transition: all 0.2s ease;
+  display: inline-block;
+  border: 1px solid #37e8ff;
+  color: #37e8ff;
+  background: rgba(55, 232, 255, 0.05);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  text-decoration: none;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .novel-btn:hover {
-    background: rgba(55, 232, 255, 0.15);
-    box-shadow: 0 0 15px rgba(55, 232, 255, 0.3);
+  background: rgba(55, 232, 255, 0.15);
+  box-shadow: 0 0 15px rgba(55, 232, 255, 0.3);
+  color: #ffffff;
+}
+
+/* CARD FOOTER */
+.note-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.like-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.like-btn:hover { border-color: var(--red-bright); color: var(--red-bright); }
+.like-btn.liked { border-color: var(--red-bright); color: var(--red-bright); }
+
+.note-id {
+  font-size: 9px;
+  color: var(--text-dim);
+  opacity: 0.4;
+  letter-spacing: 2px;
+}
+
+/* ═══════════ FOOTER ═══════════ */
+footer {
+  border-top: 2px solid var(--border);
+  text-align: center;
+  padding: 28px 20px;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 3px;
+  background: var(--bg2);
+}
+
+footer span { color: var(--red-bright); }
+
+/* MEDIA QUERIES PARA MÓVILES */
+@media (max-width: 500px) {
+  .note-date { width: 56px; min-width: 56px; }
+  .note-date .day { font-size: 14px; }
+  .note-title { font-size: 10px; }
+  nav a { font-size: 7px; padding: 12px 12px; }
 }
