@@ -181,28 +181,22 @@
     flex: 1;
   }
 
-  .note-tag {
-    font-size: 9px;
-    color: var(--red-bright);
-    letter-spacing: 3px;
-    margin-bottom: 8px;
-  }
+ .note-tag {
+    color: #a8b2d1;
+    font-weight: bold;
+}
 
-  .note-title {
-    font-family: 'Press Start 2P', monospace;
-    font-size: 13px;
-    color: var(--white);
-    margin-bottom: 14px;
-    line-height: 1.6;
-    letter-spacing: 1px;
-  }
+  .note-title, .game-card h3 {
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
 
-  .note-body {
-    font-size: 13px;
-    color: var(--text);
-    line-height: 1.85;
-    margin-bottom: 18px;
-  }
+  .note-body p, .game-card p {
+    color: #e2e8f0; /* Un blanco roto mucho más luminoso que el gris actual */
+    font-size: 14px; /* Un poco más grande */
+    line-height: 1.7; /* Más aire entre líneas */
+    font-family: 'Share Tech Mono', monospace; /* Asegura que el cuerpo no use la fuente pixelada gruesa */
+}
 
   .note-body p + p { margin-top: 10px; }
 
@@ -262,22 +256,13 @@
 
 /* BOTÓN NOVELA */
 .novel-btn {
-  display: inline-block;
-  margin-top: 10px;
-  padding: 10px 18px;
-  border: 1px solid var(--blue);
-  color: var(--blue-bright);
-  text-decoration: none;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
-  letter-spacing: 2px;
-  background: rgba(42,127,212,0.05);
-  transition: all 0.15s ease;
+    border: 1px solid #37e8ff;
+    color: #37e8ff;
+    background: rgba(55, 232, 255, 0.05);
+    transition: all 0.2s ease;
 }
 
 .novel-btn:hover {
-  color: var(--white);
-  border-color: var(--blue-bright);
-  background: rgba(42,127,212,0.15);
-  transform: translateY(-2px);
+    background: rgba(55, 232, 255, 0.15);
+    box-shadow: 0 0 15px rgba(55, 232, 255, 0.3);
 }
