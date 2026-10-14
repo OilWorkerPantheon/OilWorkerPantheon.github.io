@@ -80,29 +80,29 @@ function makeGroup(files) {
 function preload() {
     const img = (f) => loadImage(f, () => {}, () => console.error('No carga la imagen:', f));
 
-    images.V = img('assets/v.png');
-    images.A = img('assets/a.png');
-    images.N = img('assets/n.png');
-    images.S = img('assets/s.png');
+    images.V = img('Assets/v.png');
+    images.A = img('Assets/a.png');
+    images.N = img('Assets/n.png');
+    images.S = img('Assets/s.png');
 
     // V: voz líder + coros + backing (cambia los nombres por los de tus archivos reales)
     tracks.V = makeGroup([
-        "assets/vocal.mp3",
-        "assets/coros.mp3",
-        "assets/backing.mp3"
+        "Assets/vocal.mp3",
+        "Assets/coros.mp3",
+        "Assets/backing.mp3"
     ]);
     tracks.A = makeGroup([
-        "assets/guitar.mp3",
-        "assets/guitar2.mp3",
-        "assets/guitar3.mp3",
-        "assets/guitar4.mp3"
+        "Assets/guitar.mp3",
+        "Assets/guitar2.mp3",
+        "Assets/guitar3.mp3",
+        "Assets/guitar4.mp3"
     ]);  // A = guitarra
     tracks.N = makeGroup([
-        "assets/bass.mp3",
-        "assets/bass2.mp3",
-        "assets/bass3.mp3"
+        "Assets/bass.mp3",
+        "Assets/bass2.mp3",
+        "Assets/bass3.mp3"
     ]);  // N = bajo
-    tracks.S = makeGroup(["assets/drums.mp3"]);   // S = batería
+    tracks.S = makeGroup(["Assets/drums.mp3"]);   // S = batería
 }
 
 // Dibuja UNA vez el tapizado halftone del suelo (rejilla a 45°, puntos que se achican hacia abajo)
