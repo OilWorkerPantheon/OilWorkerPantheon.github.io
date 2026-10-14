@@ -29,6 +29,7 @@ const DOT_ALPHA = 55;                // opacidad 0-255 (más bajo = más sutil)
 
 let engine;
 let letters = [];
+let failedFiles = [];
 let mConstraint;
 let audioStarted = false;
 let assetsReady = false;
@@ -63,11 +64,16 @@ overlay.addEventListener('click', async () => {
 // Crea un grupo: varias pistas -> un solo bus de volumen
 function makeGroup(files) {
     const bus = new Tone.Volume(MUTE_DB).toDestination();
-    const players = files.map(f => {
-        const p = new Tone.Player(f).connect(bus); // cada pista va al bus, no al destino
-        p.loop = true;
-        return p;
-    });
+    const players = files.map(f =>
+        new Tone.Player({
+            url: f,
+            loop: true,
+            onerror: (e) => {
+                console.error('No cargó el audio:', f, e);
+                failedFiles.push(f);
+            }
+        }).connect(bus)
+    );
     return { bus, players };
 }
 
@@ -161,14 +167,22 @@ function setup() {
 
     // Esperar a que carguen TODOS los mp3 antes de permitir el clic
     Tone.loaded()
-        .then(() => {
-            assetsReady = true;
-            statusEl.textContent = "Amps ready and set to play... (click anywhere to start)";
-        })
-        .catch(e => {
-            console.error('Error cargando audios:', e);
-            statusEl.textContent = "No cargaron los audios. Revisa la carpeta assets/ y la consola (F12).";
-        });
+    .then(() => {
+        const notLoaded = Object.values(tracks)
+            .flatMap(g => g.players)
+            .filter(p => !p.loaded);
+
+        if (failedFiles.length || notLoaded.length) {
+            throw new Error('Faltan audios: ' + failedFiles.join(', '));
+        }
+
+        assetsReady = true;
+        statusEl.textContent = "Amps ready and set to play... (click anywhere to start)";
+    })
+    .catch(e => {
+        console.error('Error cargando audios:', e);
+        statusEl.textContent = "No cargaron: " + (failedFiles.join(', ') || "revisa la consola (F12)");
+    });
 }
 
 function draw() {
