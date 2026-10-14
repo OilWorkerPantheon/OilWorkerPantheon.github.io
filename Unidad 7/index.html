@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VANS | Off The Wall Sound</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Librerías -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+</head>
+<body>
+    <!-- Pantalla de inicio para obligar al usuario a hacer clic (Requisito de navegadores para reproducir audio) -->
+    <div id="start-overlay">
+        <h1>CLICK TO PLAY WITH VANS</h1>
+        <p id="status">Loading music and skateparks...</p>
+    </div>
+
+    <!-- Menú tipo Cómic -->
+    <div id="comic-menu" class="comic-container">
+        <div class="comic-panel panel-top">
+            <h2 class="comic-title">VANS.</h2>
+            <p class="comic-subtitle">Interactive Semantic Typography</p>
+            <p class="comic-author">By Santiago Mateus</p>
+            <span class="comic-ai-tag">developed with AI assistance</span>
+        </div>
+        <div class="comic-panel panel-bottom">
+            <span class="comic-label">CONTROLS</span>
+            <ul class="comic-controls">
+                <li><kbd>V</kbd> <kbd>A</kbd> <kbd>N</kbd> <kbd>S</kbd> Activate / Deactivate track</li>
+                <li><kbd>Mouse</kbd> Drag and throw letters</li>
+                <li><kbd>R</kbd> Reset VANS</li>
+                <li><kbd>H</kbd> Hide / Show menu</li>
+            </ul>
+            <!-- Botón Reset VANS -->
+            <button id="reset-btn" class="comic-btn">RESET VANS</button>
+        </div>
+    </div>
+
+    <!-- Tu código principal -->
+    <script src="sketch.js"></script>
+</body>
+</html>
