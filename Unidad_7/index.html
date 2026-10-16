@@ -1,45 +1,70 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VANS | Off The Wall Sound</title>
+    <title>VANS | Interactive Typography</title>
     <link rel="stylesheet" href="style.css">
-    
-    <!-- Librerías -->
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 </head>
 <body>
-    <!-- Pantalla de inicio para obligar al usuario a hacer clic (Requisito de navegadores para reproducir audio) -->
-    <div id="start-overlay">
-        <h1>CLICK TO PLAY WITH VANS</h1>
-        <p id="status">Loading music and skateparks...</p>
-    </div>
 
-    <!-- Menú tipo Cómic -->
-    <div id="comic-menu" class="comic-container">
+    <!-- Menú principal -->
+    <div id="comic-menu" class="comic-container" style="top: 20px; left: 20px;">
         <div class="comic-panel panel-top">
             <h2 class="comic-title">VANS.</h2>
             <p class="comic-subtitle">Interactive Semantic Typography</p>
-            <p class="comic-author">By Santiago Mateus</p>
-            <span class="comic-ai-tag">developed with AI assistance</span>
+            <p class="comic-author">BY SANTIAGO MATEUS</p>
+            <span class="comic-ai-tag">developed with ai assistance</span>
         </div>
+
         <div class="comic-panel panel-bottom">
-            <span class="comic-label">CONTROLS</span>
+            <span class="comic-label">CONTROLS (15 SEC RUN)</span>
             <ul class="comic-controls">
-                <li><kbd>V</kbd> <kbd>A</kbd> <kbd>N</kbd> <kbd>S</kbd> Activate / Deactivate track</li>
-                <li><kbd>Mouse</kbd> Drag and throw letters</li>
-                <li><kbd>R</kbd> Reset VANS</li>
-                <li><kbd>H</kbd> Hide / Show menu</li>
+                <li><kbd>→</kbd> / <kbd>D</kbd> Accelerate</li>
+                <li><kbd>←</kbd> / <kbd>A</kbd> Brake / Reverse</li>
+                <li><kbd>ESPACIO</kbd> Jump (Ollie)</li>
+                <li><kbd>R</kbd> Restart Race</li>
+                <li><kbd>H</kbd> Hide / Show Menu</li>
             </ul>
-            <!-- Botón Reset VANS -->
-            <button id="reset-btn" class="comic-btn">RESET VANS</button>
+            <button id="reset-btn" class="comic-btn" type="button">
+                RESTART RACE
+            </button>
         </div>
     </div>
 
-    <!-- Tu código principal -->
+    <!-- HUD de tiempo y puntuación -->
+    <div id="hud-container" class="comic-container" style="top: 20px; right: 20px;">
+        <div class="comic-panel panel-hud">
+            <h2 id="hud-time" class="comic-title" style="font-size: 1.3rem;">
+                TIME: 15s
+            </h2>
+            <p id="hud-score" class="comic-subtitle" style="font-size: 1.1rem; margin-top: 4px;">
+                JUMP SCORE: 0
+            </p>
+        </div>
+    </div>
+
+    <!-- Pantalla de Game Over -->
+    <div id="game-over" class="hidden">
+        <div class="comic-container game-over-container">
+            <div class="comic-panel panel-hud game-over-panel">
+                <h2 class="comic-title game-over-title">TIME'S UP!</h2>
+                <p id="final-score" class="final-score">
+                    FINAL SCORE: 0
+                </p>
+                <p class="restart-instruction">
+                    Press <kbd>R</kbd> to Restart
+                </p>
+                <button id="play-again-btn" class="comic-btn" type="button">
+                    PLAY AGAIN
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="sketch.js"></script>
 </body>
 </html>
