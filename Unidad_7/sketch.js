@@ -1,398 +1,727 @@
-const Engine = Matter.Engine,
-      World = Matter.World,
-      Bodies = Matter.Bodies,
-      Body = Matter.Body,
-      Query = Matter.Query,
-      Mouse = Matter.Mouse,
-      MouseConstraint = Matter.MouseConstraint;
 
-// ---------- Ajustes de audio ----------
-const MUTE_DB = -80;          // apagado por la tecla
-const FLOOR_DB = -30;         // volumen mínimo cuando está activa pero abandonada (nunca silencio)
-const DECAY_SECONDS = 10;     // segundos que tarda en bajar de 0 dB al piso si no la tocas
-const RISE_SECONDS = 0.3;     // qué tan rápido recupera volumen cuando la tocas
-const MOVE_THRESHOLD = 1.0;   // cuánto movimiento cuenta como "estar interactuando"
-const HOVER_COUNTS = true;    // true: pasar el mouse encima también mantiene el volumen
+/* =========================================================
+   VANS · Interactive Typography
+   Letras V-A-N-S recorribles en patineta
+   ========================================================= */
 
-// ---------- Reacción al clic ----------
-const CLICK_SQUISH = 5;       // fuerza del "esquishe" (0 = nada, 8 = muy exagerado)
-const CLICK_NUDGE = 3;        // empujoncito horizontal (se bambolea, no salta)
-const CLICK_SPIN = 0.06;      // cuánto gira según en qué lado la tocas
+/* ---------- Siluetas de fondo ---------- */
 
-// ---------- Suelo con tapizado halftone ----------
-const FLOOR_RATIO = 0.15;            // alto del suelo (15% de la pantalla, igual que en el CSS)
-const DOT_SPACING = 16;              // distancia entre puntos de una misma fila
-const DOT_MAX = 9;                   // diámetro de los puntos en el borde de arriba
-const DOT_MIN = 1.5;                 // diámetro de los puntos en el borde de abajo
-const DOT_COLOR = [150, 55, 55];     // tono rojizo, parecido al fondo
-const DOT_ALPHA = 55;                // opacidad 0-255 (más bajo = más sutil)
-
-let engine;
-let letters = [];
-let failedFiles = [];
-let mConstraint;
-let audioStarted = false;
-let assetsReady = false;
-
-let floorY;
-let floorPattern;
-
-let tracks = {};
-let images = {};
-
-// ---------- Overlay: se registra FUERA de setup() para que siempre responda ----------
-const overlay = document.getElementById('start-overlay');
-const statusEl = document.getElementById('status');
-
-overlay.addEventListener('click', async () => {
-    if (!assetsReady || audioStarted) return; // aún cargando o ya iniciado
-
-    try {
-        await Tone.start();
-        const t0 = Tone.now() + 0.1; // todas las pistas de todos los grupos arrancan sincronizadas
-        Object.values(tracks).forEach(group => group.players.forEach(p => p.start(t0)));
-        audioStarted = true;
-
-        overlay.style.opacity = "0";
-        setTimeout(() => overlay.style.display = "none", 500);
-    } catch (e) {
-        console.error('Error al iniciar audio:', e);
-        statusEl.textContent = "Error al iniciar el audio (revisa la consola)";
-    }
-});
-
-// Crea un grupo: varias pistas -> un solo bus de volumen
-function makeGroup(files) {
-    const bus = new Tone.Volume(MUTE_DB).toDestination();
-    const players = files.map(f =>
-        new Tone.Player({
-            url: f,
-            loop: true,
-            onerror: (e) => {
-                console.error('No cargó el audio:', f, e);
-                failedFiles.push(f);
-            }
-        }).connect(bus)
-    );
-    return { bus, players };
-}
+let skaterImg;
+let rockerImg;
+let silhouettes = [];
 
 function preload() {
-    const img = (f) => loadImage(f, () => {}, () => console.error('No carga la imagen:', f));
+    skaterImg = loadImage(
+        "assets/skater.png",
+        () => {},
+        () => console.warn("No se pudo cargar assets/skater.png")
+    );
 
-    images.V = img('Assets/v.png');
-    images.A = img('Assets/a.png');
-    images.N = img('Assets/n.png');
-    images.S = img('Assets/s.png');
-
-    // V: voz líder + coros + backing (cambia los nombres por los de tus archivos reales)
-    tracks.V = makeGroup([
-        "Assets/vocal.mp3",
-        "Assets/coros.mp3",
-        "Assets/backing.mp3"
-    ]);
-    tracks.A = makeGroup([
-        "Assets/guitar.mp3",
-        "Assets/guitar2.mp3",
-        "Assets/guitar3.mp3",
-        "Assets/guitar4.mp3"
-    ]);  // A = guitarra
-    tracks.N = makeGroup([
-        "Assets/bass.mp3",
-        "Assets/bass2.mp3",
-        "Assets/bass3.mp3"
-    ]);  // N = bajo
-    tracks.S = makeGroup(["Assets/drums.mp3"]);   // S = batería
+    rockerImg = loadImage(
+        "assets/rocker.png",
+        () => {},
+        () => console.warn("No se pudo cargar assets/rocker.png")
+    );
 }
 
-// Dibuja UNA vez el tapizado halftone del suelo (rejilla a 45°, puntos que se achican hacia abajo)
-function buildFloorPattern() {
-    const h = height - floorY;
-    floorPattern = createGraphics(width, h);
-    floorPattern.noStroke();
-    floorPattern.fill(DOT_COLOR[0], DOT_COLOR[1], DOT_COLOR[2], DOT_ALPHA);
+/* ---------- Geometría de las letras ---------- */
 
-    const rowStep = DOT_SPACING / 2;
-    for (let r = 0, y = rowStep / 2; y < h; r++, y += rowStep) {
-        const t = y / h;                               // 0 arriba, 1 abajo
-        const d = lerp(DOT_MAX, DOT_MIN, pow(t, 0.8)); // tamaño del punto en esta fila
-        const offset = (r % 2) * (DOT_SPACING / 2);    // filas alternas desplazadas = diagonal
-        for (let x = offset; x < width + DOT_SPACING; x += DOT_SPACING) {
-            floorPattern.circle(x, y, d);
-        }
-    }
-}
+const LETTER_H = 600;
+const STROKE = 112;
+const ROAD = 80;
+const SLANT = 0.2;
+const YELLOW = [196, 190, 93];
+
+let route = [];
+let letters = [];
+let trail = [];
+let camY = LETTER_H / 2;
+let totalLength = 0;
+
+/* ---------- Jugador ---------- */
+
+let distance = 0;
+let speed = 0;
+
+const MAX_SPEED = 18;
+const ACCEL = 0.6;
+const FRICTION = 0.96;
+
+/* ---------- Patineta ---------- */
+
+let boardAngle = 0;
+let facing = 0;
+
+/* ---------- Salto ---------- */
+
+let jumpY = 0;
+let jumpVel = 0;
+let isJumping = false;
+
+const GRAVITY = -1.2;
+const JUMP_FORCE = 18;
+
+/* ---------- Estado del juego ---------- */
+
+let score = 0;
+let timeLeft = 15;
+let gameStarted = false;
+let gameOver = false;
+let startTime = 0;
+
+/* ---------- Elementos HTML ---------- */
+
+let hudTime;
+let hudScore;
+let gameOverScreen;
+let finalScoreText;
+
+/* =========================================================
+   CONFIGURACIÓN
+   ========================================================= */
 
 function setup() {
-    let canvas = createCanvas(windowWidth, windowHeight);
-    canvas.style('position', 'absolute');
-    canvas.style('top', '0');
-    canvas.style('z-index', '1');
+    const canvas = createCanvas(windowWidth, windowHeight);
 
-    engine = Engine.create();
+    canvas.position(0, 0);
+    canvas.style("z-index", "0");
+    canvas.style("display", "block");
 
-    // La caja: suelo, techo y paredes gruesas para que nada se escape
-    floorY = height - (height * FLOOR_RATIO);
-    let floor = Bodies.rectangle(width / 2, floorY + 250, width * 2, 500, { isStatic: true, friction: 1 });
-    let ceiling = Bodies.rectangle(width / 2, -250, width * 2, 500, { isStatic: true });
-    let leftWall = Bodies.rectangle(-250, height / 2, 500, height * 2, { isStatic: true });
-    let rightWall = Bodies.rectangle(width + 250, height / 2, 500, height * 2, { isStatic: true });
-    World.add(engine.world, [floor, ceiling, leftWall, rightWall]);
+    hudTime = document.getElementById("hud-time");
+    hudScore = document.getElementById("hud-score");
+    gameOverScreen = document.getElementById("game-over");
+    finalScoreText = document.getElementById("final-score");
 
-    buildFloorPattern();
+    const resetBtn = document.getElementById("reset-btn");
+    const playAgainBtn = document.getElementById("play-again-btn");
 
-    let spacing = 250;
-    let startX = width / 2 - (spacing * 1.5);
-
-    // Cada letra recibe el BUS de su grupo (controla todas sus pistas a la vez)
-    letters.push(new PlayableLetter('V', startX, 200, tracks.V.bus, images.V));
-    letters.push(new PlayableLetter('A', startX + spacing, 100, tracks.A.bus, images.A));
-    letters.push(new PlayableLetter('N', startX + spacing * 2, 300, tracks.N.bus, images.N));
-    letters.push(new PlayableLetter('S', startX + spacing * 3, 50, tracks.S.bus, images.S));
-
-    // Arrastrar con el mouse
-    let canvasMouse = Mouse.create(canvas.elt);
-    canvasMouse.pixelRatio = pixelDensity();
-    mConstraint = MouseConstraint.create(engine, {
-        mouse: canvasMouse,
-        constraint: { stiffness: 0.2, render: { visible: false } }
-    });
-    World.add(engine.world, mConstraint);
-
-    // Botón de Reset en la UI
-    const resetBtn = document.getElementById('reset-btn');
     if (resetBtn) {
-        resetBtn.addEventListener('click', resetLetters);
+        resetBtn.addEventListener("click", restartGame);
     }
 
-    // Esperar a que carguen TODOS los mp3 antes de permitir el clic
-    Tone.loaded()
-    .then(() => {
-        const notLoaded = Object.values(tracks)
-            .flatMap(g => g.players)
-            .filter(p => !p.loaded);
+    if (playAgainBtn) {
+        playAgainBtn.addEventListener("click", restartGame);
+    }
 
-        if (failedFiles.length || notLoaded.length) {
-            throw new Error('Faltan audios: ' + failedFiles.join(', '));
-        }
+    // Controles que también funcionan sobre la pantalla de Game Over.
+    document.addEventListener("keydown", handleGlobalKeys);
 
-        assetsReady = true;
-        statusEl.textContent = "Amps ready and set to play... (click anywhere to start)";
-    })
-    .catch(e => {
-        console.error('Error cargando audios:', e);
-        statusEl.textContent = "No cargaron: " + (failedFiles.join(', ') || "revisa la consola (F12)");
-    });
+    // Ocultar explícitamente la pantalla de Game Over al iniciar.
+    if (gameOverScreen) {
+        gameOverScreen.classList.add("hidden");
+    }
+
+    // Crear el collage de fondo.
+    for (let i = 0; i < 16; i++) {
+        silhouettes.push({
+            nx: random(0.05, 0.95),
+            ny: random(0.05, 0.95),
+            s: random(0.5, 1.2),
+            r: random(-PI / 6, PI / 6),
+            type: i % 2
+        });
+    }
+
+    buildTrack();
+    updateBoardAngle(true);
 }
+
+/* =========================================================
+   BUCLE PRINCIPAL
+   ========================================================= */
 
 function draw() {
-    clear();
+    background(255);
 
-    // Tapizado del suelo (va debajo de las letras)
-    if (floorPattern) {
-        imageMode(CORNER);
-        image(floorPattern, 0, floorY);
+    drawSilhouettes();
+
+    if (!gameOver) {
+        handleMovement();
+        updateGameLogic();
     }
 
-    Engine.update(engine);
+    const pos = getPathPos(distance);
 
-    for (let l of letters) {
-        l.update();
-        l.show();
+    updateBoardAngle(false);
+
+    // Escala y cámara.
+    const sc = min(1, (height * 0.86) / (LETTER_H + STROKE));
+    const lowLimit = LETTER_H + 50;
+
+    const camTarget = pos.y <= lowLimit
+        ? LETTER_H / 2
+        : LETTER_H / 2 + (pos.y - lowLimit) * 0.9;
+
+    camY += (camTarget - camY) * 0.06;
+
+    push();
+
+    translate(width / 2, height * 0.52);
+    scale(sc);
+    translate(-pos.x, -camY);
+
+    noFill();
+    strokeCap(ROUND);
+    strokeJoin(ROUND);
+
+    // 1. Carreteras.
+    stroke(74);
+    strokeWeight(ROAD);
+
+    for (const segment of trail) {
+        if (segment.road) {
+            drawPolyline(segment.pts);
+        }
+    }
+
+    // 2. Letras gruesas.
+    stroke(0);
+    strokeWeight(STROKE);
+
+    for (const letter of letters) {
+        drawPolyline(letter);
+    }
+
+    // 3. Línea amarilla discontinua.
+    drawingContext.setLineDash([36, 28]);
+
+    stroke(YELLOW[0], YELLOW[1], YELLOW[2]);
+    strokeWeight(6);
+
+    drawPolyline(route);
+
+    drawingContext.setLineDash([]);
+
+    // 4. Patineta.
+    push();
+
+    translate(pos.x, pos.y);
+    rotate(boardAngle);
+    translate(0, -jumpY - 32);
+
+    drawSkateboard();
+
+    pop();
+    pop();
+}
+
+/* =========================================================
+   COLLAGE DE SILUETAS
+   ========================================================= */
+
+function drawSilhouettes() {
+    push();
+
+    tint(0, 30);
+    imageMode(CENTER);
+
+    for (const sil of silhouettes) {
+        const img = sil.type === 0 ? skaterImg : rockerImg;
+
+        if (img && img.width > 0) {
+            push();
+
+            translate(sil.nx * width, sil.ny * height);
+            rotate(sil.r);
+            scale(sil.s);
+
+            image(img, 0, 0, 350, 350);
+
+            pop();
+        }
+    }
+
+    pop();
+}
+
+/* =========================================================
+   DIBUJO DE POLILÍNEAS
+   ========================================================= */
+
+function drawPolyline(pts) {
+    if (!pts || pts.length === 0) return;
+
+    beginShape();
+
+    for (const p of pts) {
+        vertex(p.x, p.y);
+    }
+
+    endShape();
+}
+
+/* =========================================================
+   MOVIMIENTO Y LÓGICA DEL JUEGO
+   ========================================================= */
+
+function handleMovement() {
+    if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) {
+        speed += ACCEL;
+
+        if (!gameStarted) {
+            startGame();
+        }
+    } else if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) {
+        speed -= ACCEL;
+
+        if (!gameStarted) {
+            startGame();
+        }
+    } else {
+        speed *= FRICTION;
+    }
+
+    speed = constrain(speed, -MAX_SPEED / 2, MAX_SPEED);
+}
+
+function updateGameLogic() {
+    // Mantener la distancia dentro del circuito cerrado.
+    distance = ((distance + speed) % totalLength + totalLength)
+        % totalLength;
+
+    // Física del salto.
+    if (isJumping) {
+        jumpY += jumpVel;
+        jumpVel += GRAVITY;
+
+        if (jumpY <= 0) {
+            jumpY = 0;
+            isJumping = false;
+            jumpVel = 0;
+
+            if (gameStarted && speed > 2) {
+                score++;
+
+                if (hudScore) {
+                    hudScore.innerText = "JUMP SCORE: " + score;
+                }
+            }
+        }
+    }
+
+    // Temporizador de 15 segundos.
+    if (gameStarted) {
+        const elapsed = floor((millis() - startTime) / 1000);
+
+        timeLeft = max(0, 15 - elapsed);
+
+        if (hudTime) {
+            hudTime.innerText = "TIME: " + timeLeft + "s";
+        }
+
+        if (timeLeft <= 0) {
+            triggerGameOver();
+        }
     }
 }
 
-// Reorganiza todas las letras a su posición inicial
-function resetLetters() {
-    for (let l of letters) {
-        l.resetPosition();
+/* =========================================================
+   CONTROLES DE TECLADO
+   ========================================================= */
+
+function handleGlobalKeys(event) {
+    const keyChar = event.key.toLowerCase();
+
+    // Reiniciar desde cualquier estado.
+    if (keyChar === "r") {
+        event.preventDefault();
+        restartGame();
+        return;
+    }
+
+    // Ocultar o mostrar el menú.
+    if (keyChar === "h" && !event.repeat) {
+        const menu = document.getElementById("comic-menu");
+
+        if (menu) {
+            menu.classList.toggle("hidden");
+        }
     }
 }
 
-// Tecla = interruptor: enciende / apaga la pista de esa letra
-// H = ocultar/mostrar menú, R = reorganizar VANS
 function keyPressed() {
-    let keyChar = key.toUpperCase();
+    // Saltar con la barra espaciadora.
+    if (
+        keyCode === 32 &&
+        !isJumping &&
+        !gameOver
+    ) {
+        isJumping = true;
+        jumpVel = JUMP_FORCE;
 
-    // Interruptor del menú con la tecla H
-    if (keyChar === 'H') {
-        let menu = document.getElementById('comic-menu');
-        if (menu) menu.classList.toggle('hidden');
-        return;
-    }
-
-    // Reorganizar VANS con la tecla R
-    if (keyChar === 'R') {
-        resetLetters();
-        return;
-    }
-
-    if (!audioStarted) return;
-
-    for (let l of letters) {
-        if (l.id === keyChar) {
-            Body.setVelocity(l.body, { x: random(-10, 10), y: -20 });
-            Body.setAngularVelocity(l.body, random(-0.3, 0.3));
-            l.toggleAudio();
-        }
-    }
-}
-
-// Clic directo sobre una letra: reacciona (esquishe + bamboleo) y recupera volumen
-function mousePressed(event) {
-    if (!audioStarted) return;
-
-    // Ignorar clics que no son sobre el canvas (botones del menú, etc.)
-    if (event && event.target && event.target.tagName !== 'CANVAS') return;
-
-    let p = { x: mouseX, y: mouseY };
-    for (let l of letters) {
-        if (Query.point([l.body], p).length > 0) {
-            l.poke(p.x);
-            break; // solo la letra de arriba
-        }
-    }
-}
-
-class PlayableLetter {
-    constructor(id, x, y, audioTrack, img) {
-        this.id = id;
-        this.initialX = x;    // posición de inicio (para el reset)
-        this.initialY = y;
-        this.w = 230;
-        this.h = 280;
-
-        this.audio = audioTrack;   // aquí llega el bus de volumen del grupo
-        this.img = img;
-        this.isAudioActive = false;
-        this.energy = 0;      // 1 = recién tocada (0 dB), 0 = abandonada (piso)
-        this.holdUntil = 0;   // evita pelear con el fade-in al encender
-        this.squish = 0;      // deformación elástica del clic (resorte)
-        this.squishVel = 0;
-
-        this.body = Bodies.rectangle(x, y, this.w * 0.75, this.h * 0.75, {
-            restitution: 0.7,
-            friction: 0.8,
-            density: 0.05
-        });
-        World.add(engine.world, this.body);
-    }
-
-    // Restablece posición, rotación y sube el volumen si la pista estaba activa
-    resetPosition() {
-        Body.setPosition(this.body, { x: this.initialX, y: this.initialY });
-        Body.setAngle(this.body, 0);
-        Body.setVelocity(this.body, { x: 0, y: 0 });
-        Body.setAngularVelocity(this.body, 0);
-
-        this.squish = 0;
-        this.squishVel = 0;
-
-        if (this.isAudioActive) {
-            this.energy = 1;
-            this.holdUntil = millis() + 250;
-            this.audio.volume.rampTo(0, 0.2);
-        }
-    }
-
-    toggleAudio() {
-        this.isAudioActive = !this.isAudioActive;
-
-        if (this.isAudioActive) {
-            this.energy = 1;
-            this.holdUntil = millis() + 250;
-            this.audio.volume.rampTo(0, 0.2);
-        } else {
-            this.audio.volume.rampTo(MUTE_DB, 0.5);
-        }
-    }
-
-    // Reacción al clic directo
-    poke(clickX) {
-        // Esquishe: se aplasta y rebota como un resorte
-        this.squishVel = CLICK_SQUISH;
-
-        // Empujoncito + giro según el lado donde la tocaste (sin saltar)
-        let dx = constrain((this.body.position.x - clickX) / (this.w / 2), -1, 1);
-        Body.setVelocity(this.body, {
-            x: this.body.velocity.x + dx * CLICK_NUDGE,
-            y: this.body.velocity.y
-        });
-        Body.setAngularVelocity(this.body, this.body.angularVelocity - dx * CLICK_SPIN);
-
-        // Si está sonando, el volumen vuelve a subir de inmediato
-        if (this.isAudioActive) {
-            this.energy = 1;
-            this.holdUntil = millis() + 200;
-            this.audio.volume.rampTo(0, 0.12);
-        }
-    }
-
-    // ¿El usuario (o la física) está "manejando" esta letra ahora mismo?
-    isBeingTouched() {
-        // 1. Arrastrándola / presionándola con el mouse
-        if (mConstraint.body === this.body) return true;
-
-        // 2. Moviéndose: rebotando, rodando, volando
-        let speed = Math.hypot(this.body.velocity.x, this.body.velocity.y);
-        let spin = Math.abs(this.body.angularVelocity) * 20;
-        if (speed + spin > MOVE_THRESHOLD) return true;
-
-        // 3. Mouse encima (apuntándola)
-        if (HOVER_COUNTS) {
-            let m = mConstraint.mouse.position;
-            if (Query.point([this.body], m).length > 0) return true;
+        if (!gameStarted) {
+            startGame();
         }
 
         return false;
     }
 
-    update() {
-        // Resorte del esquishe (corre siempre, suene o no la letra)
-        let sdt = Math.min(deltaTime / 1000, 0.033);
-        this.squishVel += (-300 * this.squish - 14 * this.squishVel) * sdt;
-        this.squish += this.squishVel * sdt;
+    // Evitar el desplazamiento de la página con espacio.
+    if (keyCode === 32) {
+        return false;
+    }
+}
 
-        if (!audioStarted || !this.isAudioActive) return;
+function startGame() {
+    if (gameStarted || gameOver) return;
 
-        let dt = deltaTime / 1000;
+    gameStarted = true;
+    startTime = millis();
+}
 
-        if (this.isBeingTouched()) {
-            this.energy = Math.min(1, this.energy + dt / RISE_SECONDS);
-        } else {
-            this.energy = Math.max(0, this.energy - dt / DECAY_SECONDS);
-        }
+/* =========================================================
+   GAME OVER Y REINICIO
+   ========================================================= */
 
-        // Esperar a que termine el fade-in de la tecla
-        if (millis() < this.holdUntil) return;
+function triggerGameOver() {
+    if (gameOver) return;
 
-        // energy 1 -> 0 dB, energy 0 -> FLOOR_DB
-        this.audio.volume.value = FLOOR_DB * (1 - this.energy);
+    gameOver = true;
+    speed = 0;
+    isJumping = false;
+    jumpVel = 0;
+
+    if (finalScoreText) {
+        finalScoreText.innerText = "FINAL SCORE: " + score;
     }
 
-    show() {
-        let pos = this.body.position;
-        let angle = this.body.angle;
-        let vy = this.body.velocity.y;
+    if (gameOverScreen) {
+        gameOverScreen.classList.remove("hidden");
+    }
+}
 
-        // Efecto cartoon (squash & stretch)
-        let stretch = 1 + (abs(vy) * 0.015);
-        let squash = 1 / stretch;
+function restartGame() {
+    // Restablecer el estado completo de la partida.
+    distance = 0;
+    speed = 0;
+    score = 0;
+    timeLeft = 15;
 
-        push();
-        translate(pos.x, pos.y);
-        rotate(angle);
-        // squash/stretch por velocidad + esquishe elástico del clic
-        scale(squash * (1 + 0.6 * this.squish), stretch * (1 - 0.6 * this.squish));
+    gameStarted = false;
+    gameOver = false;
 
-        if (!this.isAudioActive) {
-            tint(255, 150);                               // apagada: translúcida
-        } else {
-            tint(255, 200 + 55 * this.energy);           // activa: se va apagando con la energía
+    isJumping = false;
+    jumpY = 0;
+    jumpVel = 0;
+
+    facing = 0;
+    camY = LETTER_H / 2;
+
+    // Actualizar los elementos visuales.
+    if (hudTime) {
+        hudTime.innerText = "TIME: 15s";
+    }
+
+    if (hudScore) {
+        hudScore.innerText = "JUMP SCORE: 0";
+    }
+
+    if (finalScoreText) {
+        finalScoreText.innerText = "FINAL SCORE: 0";
+    }
+
+    if (gameOverScreen) {
+        gameOverScreen.classList.add("hidden");
+    }
+
+    // Devolver la patineta a su orientación inicial.
+    updateBoardAngle(true);
+}
+
+/* =========================================================
+   PATINETA
+   ========================================================= */
+
+function updateBoardAngle(snap) {
+    const a = getPathPos(distance - 40);
+    const b = getPathPos(distance + 40);
+
+    const dx = b.x - a.x;
+
+    if (dx < -25) {
+        facing = PI;
+    } else if (dx > 25) {
+        facing = 0;
+    }
+
+    const target = atan2(b.y - a.y, b.x - a.x) + facing;
+
+    if (snap) {
+        boardAngle = target;
+    } else {
+        const diff =
+            ((target - boardAngle + PI) % TWO_PI + TWO_PI) % TWO_PI - PI;
+
+        boardAngle += diff * 0.2;
+    }
+}
+
+
+function drawSkateboard() {
+    // Ruedas negras con centros blancos.
+    noStroke();
+    fill(255);
+
+    ellipse(-45, 20, 24, 24);
+    ellipse(45, 20, 24, 24);
+
+    fill(255);
+    ellipse(-45, 20, 7, 7);
+    ellipse(45, 20, 7, 7);
+
+    // Tabla roja con borde negro.
+    fill("#C8102E");
+    stroke(0);
+    strokeWeight(4);
+
+    ellipse(0, 0, 160, 55);
+
+    // Logotipo blanco inspirado en el estilo VANS.
+    noStroke();
+    fill(255);
+
+    textAlign(CENTER, CENTER);
+    textFont("Arial Black");
+    textStyle(BOLD);
+    textSize(29);
+
+    // Letras compactas y ligeramente inclinadas.
+    push();
+    shearX(-0.12);
+    text("VANS", 0, 1);
+    pop();
+
+    // Barra superior extendida del logotipo.
+    stroke(255);
+    strokeWeight(5);
+    strokeCap(SQUARE);
+
+    line(-4, -17, 45, -17);
+}
+
+
+/* =========================================================
+   CONSTRUCCIÓN DE LA PISTA
+   ========================================================= */
+
+function arcPoints(cx, cy, rx, ry, a0, a1, n = 40) {
+    const pts = [];
+
+    for (let i = 0; i <= n; i++) {
+        const a = radians(lerp(a0, a1, i / n));
+
+        pts.push({
+            x: cx + rx * cos(a),
+            y: cy + ry * sin(a)
+        });
+    }
+
+    return pts;
+}
+
+function chaikin(pts, iterations) {
+    for (let k = 0; k < iterations; k++) {
+        const out = [pts[0]];
+
+        for (let i = 0; i < pts.length - 1; i++) {
+            const p = pts[i];
+            const q = pts[i + 1];
+
+            out.push({
+                x: lerp(p.x, q.x, 0.25),
+                y: lerp(p.y, q.y, 0.25)
+            });
+
+            out.push({
+                x: lerp(p.x, q.x, 0.75),
+                y: lerp(p.y, q.y, 0.75)
+            });
         }
 
-        imageMode(CENTER);
-        image(this.img, 0, 0, this.w, this.h);
-        pop();
+        out.push(pts[pts.length - 1]);
+        pts = out;
     }
+
+    return pts;
+}
+
+function buildTrack() {
+    const B = LETTER_H;
+    const W = 440;
+    const GAP = 780;
+
+    // Inclinar las letras hacia la derecha en la parte superior.
+    const slant = (pts) => pts.map(p => ({
+        x: p.x + (B - p.y) * SLANT,
+        y: p.y
+    }));
+
+    // V.
+    const V = slant([
+        { x: 0, y: 0 },
+        { x: W / 2, y: B },
+        { x: W, y: 0 }
+    ]);
+
+    // A.
+    const ax = GAP;
+
+    const A = slant([
+        { x: ax, y: B },
+        { x: ax + W / 2, y: 0 },
+        { x: ax + W, y: B }
+    ]);
+
+    // Travesaño decorativo de la A.
+    const barT = 0.62;
+
+    const Abar = slant([
+        {
+            x: ax + (W / 2) * (1 - barT),
+            y: B * barT
+        },
+        {
+            x: ax + W - (W / 2) * (1 - barT),
+            y: B * barT
+        }
+    ]);
+
+    // N.
+    const nx = GAP * 2;
+
+    const N = slant([
+        { x: nx, y: B },
+        { x: nx, y: 0 },
+        { x: nx + W, y: B },
+        { x: nx + W, y: 0 }
+    ]);
+
+    // S construida mediante dos arcos.
+    const sx = GAP * 3 + W / 2;
+
+    const upper = arcPoints(
+        sx, B * 0.25, W / 2, B * 0.25, -20, -270
+    );
+
+    const lower = arcPoints(
+        sx, B * 0.75, W / 2, B * 0.25, -90, 160
+    );
+
+    const S = slant(upper.concat(lower.slice(1)));
+    const Srev = S.slice().reverse();
+
+    letters = [V, A, Abar, N, S];
+
+    // Pista de regreso por debajo de las letras.
+    const last = (arr) => arr[arr.length - 1];
+
+    const sEnd = last(Srev);
+    const floorY = B + 300;
+
+    const back = chaikin([
+        sEnd,
+        { x: sEnd.x + 80, y: B * 0.9 },
+        { x: sEnd.x + 80, y: floorY },
+        { x: -560, y: floorY },
+        V[0]
+    ], 3);
+
+    // Tramos que componen la pista.
+    trail = [
+        { pts: V, road: false },
+        { pts: [last(V), A[0]], road: true },
+        { pts: A, road: false },
+        { pts: [last(A), N[0]], road: true },
+        { pts: N, road: false },
+        { pts: [last(N), Srev[0]], road: true },
+        { pts: Srev, road: false },
+        { pts: back, road: true }
+    ];
+
+    // Unir los tramos en una ruta continua.
+    const raw = trail.flatMap(segment => segment.pts);
+
+    route = [{
+        x: raw[0].x,
+        y: raw[0].y,
+        dist: 0
+    }];
+
+    let acc = 0;
+
+    // Densificar la ruta para calcular posiciones suaves.
+    for (let i = 1; i < raw.length; i++) {
+        const p0 = raw[i - 1];
+        const p1 = raw[i];
+
+        const steps = max(
+            1,
+            ceil(dist(p0.x, p0.y, p1.x, p1.y) / 5)
+        );
+
+        for (let s = 1; s <= steps; s++) {
+            const t = s / steps;
+
+            const x = lerp(p0.x, p1.x, t);
+            const y = lerp(p0.y, p1.y, t);
+
+            const previous = route[route.length - 1];
+
+            acc += dist(previous.x, previous.y, x, y);
+
+            route.push({
+                x: x,
+                y: y,
+                dist: acc
+            });
+        }
+    }
+
+    totalLength = acc;
+}
+
+/* =========================================================
+   POSICIÓN SOBRE LA RUTA
+   ========================================================= */
+
+function getPathPos(d) {
+    if (route.length < 2 || totalLength <= 0) {
+        return { x: 0, y: LETTER_H / 2 };
+    }
+
+    d = ((d % totalLength) + totalLength) % totalLength;
+
+    let lo = 0;
+    let hi = route.length - 1;
+
+    // Búsqueda binaria del segmento correspondiente.
+    while (hi - lo > 1) {
+        const mid = (lo + hi) >> 1;
+
+        if (route[mid].dist <= d) {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+
+    const a = route[lo];
+    const b = route[hi];
+
+    const t = b.dist === a.dist
+        ? 0
+        : (d - a.dist) / (b.dist - a.dist);
+
+    return {
+        x: lerp(a.x, b.x, t),
+        y: lerp(a.y, b.y, t)
+    };
+}
+
+/* =========================================================
+   REDIMENSIONAR VENTANA
+   ========================================================= */
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
 }
